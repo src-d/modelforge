@@ -47,6 +47,7 @@ def main():
     list_parser.add_argument("--gcs", default=None, help="GCS bucket to use.")
 
     args = parser.parse_args()
+    args.log_level = logging._nameToLevel[args.log_level]
     setup_logging(args.log_level)
     try:
         handler = args.handler

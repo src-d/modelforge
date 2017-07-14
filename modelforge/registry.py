@@ -1,130 +1,64 @@
-import json
 import logging
 import os
-import time
-import uuid
 
-import asdf
-from clint.textui import progress
 from dateutil.parser import parse as parse_datetime
-from google.cloud.storage import Client
-import requests
 
 from modelforge.meta import extract_index_meta
-from modelforge.model import Model
+from modelforge.model import Model, GenericModel
+from modelforge.backends import create_backend_noexc
 
 
-class FileReadTracker:
-    """
-    Wrapper around Python fileobj which records the file position and updates
-    the console progressbar.
-    """
-    def __init__(self, file, logger):
-        self._file = file
-        self._position = 0
-        file.seek(0, 2)
-        self._size = file.tell()
-        self._enabled = logger.isEnabledFor(logging.INFO)
-        if self._enabled:
-            self._progress = progress.Bar(expected_size=self._size)
-        file.seek(0)
-
-    @property
-    def size(self):
-        return self._size
-
-    def read(self, size=None):
-        result = self._file.read(size)
-        self._position += len(result)
-        if self._enabled:
-            self._progress.show(self._position)
-        return result
-
-    def tell(self):
-        return self._position
-
-    def done(self):
-        if self._enabled:
-            self._progress.done()
+def supply_backend(name):
+    def supply_backend_inner(func):
+        def wrapped_supply_backend(args):
+            log = logging.getLogger(name)
+            backend = create_backend_noexc(log, args.backend, args.args)
+            if backend is None:
+                return 1
+            return func(args, backend, log)
+        return wrapped_supply_backend
+    return supply_backend_inner
 
 
-def publish_model(args):
+@supply_backend("publish")
+def publish_model(args, backend, log):
     """
     Pushes the model to Google Cloud Storage and updates the index file.
 
-    :param args: :class:`argparse.Namespace` with "model", "gcs" and "force".
+    :param args: :class:`argparse.Namespace` with "model", "backend", "args" and "force".
     :return: None if successful, 1 otherwise.
     """
-    log = logging.getLogger("publish")
     log.info("Reading %s...", os.path.abspath(args.model))
-    tree = asdf.open(args.model).tree
-    meta = tree["meta"]
-    log.info("Locking the bucket...")
-    transaction = uuid.uuid4().hex.encode()
-    if args.credentials:
-        client = Client.from_service_account_json(args.credentials)
-    else:
-        client = Client()
-    bucket = client.get_bucket(args.gcs)
-    sentinel = bucket.blob("index.lock")
-    locked = False
-    while not locked:
-        while sentinel.exists():
-            log.warning("Failed to acquire the lock, waiting...")
-            time.sleep(1)
-        # At this step, several agents may think the lockfile does not exist
-        try:
-            sentinel.upload_from_string(transaction)
-            # Only one agent succeeds to check this condition
-            locked = sentinel.download_as_string() == transaction
-        except:
-            # GCS detects the changed-while-reading collision
-            log.warning("Failed to acquire the lock, retrying...")
     try:
-        blob = bucket.blob("models/%s/%s.asdf" % (meta["model"], meta["uuid"]))
-        if blob.exists() and not args.force:
-            log.error("Model %s already exists, aborted.", meta["uuid"])
-            return 1
-        log.info("Uploading %s from %s...", meta["model"],
-                 os.path.abspath(args.model))
-        with open(args.model, "rb") as fin:
-            tracker = FileReadTracker(fin, log)
-            try:
-                blob.upload_from_file(
-                    tracker, content_type="application/x-yaml",
-                    size=tracker.size)
-            finally:
-                tracker.done()
-        blob.make_public()
-        model_url = blob.public_url
+        model = GenericModel(args.model)
+    except ValueError:
+        log.critical('"model" must be a path')
+        return 1
+    except Exception as e:
+        log.critical("Failed to load the model: %s: %s" % (type(e).__name__, e))
+        return 1
+    meta = model.meta
+    with backend.transaction():
+        model_url = backend.upload_model(args.model, meta, args.force)
         log.info("Uploaded as %s", model_url)
         log.info("Updating the models index...")
-        blob = bucket.get_blob(Model.INDEX_FILE)
-        index = json.loads(blob.download_as_string().decode("utf-8"))
+        index = backend.fetch_index()
         index["models"].setdefault(meta["model"], {})[meta["uuid"]] = \
             extract_index_meta(meta, model_url)
         if args.update_default:
             index["models"][meta["model"]][Model.DEFAULT_NAME] = meta["uuid"]
-        blob.upload_from_string(json.dumps(index, indent=4, sort_keys=True))
-        blob.make_public()
-    finally:
-        sentinel.delete()
+        backend.upload_index(index)
 
 
-def list_models(args):
+@supply_backend("list")
+def list_models(args, backend, log):
     """
     Outputs the list of known models in the registry.
 
-    :param args: :class:`argparse.Namespace` with "gcs".
+    :param args: :class:`argparse.Namespace` with "backend" and "args".
     :return: None
     """
-    r = requests.get(Model.compose_index_url(args.gcs), stream=True)
-    content = r.content.decode("utf-8")
-    try:
-        index = json.loads(content)
-    except json.decoder.JSONDecodeError:
-        print(content)
-        return 1
+    index = backend.fetch_index()
     for key, val in index["models"].items():
         print(key)
         default = None

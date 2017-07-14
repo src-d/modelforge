@@ -6,10 +6,11 @@ import unittest
 import numpy
 from scipy.sparse import csr_matrix
 
-from modelforge.dump import GenericModel
-import modelforge.model
+import modelforge.gcs_backend
+from modelforge.backends import create_backend
+from modelforge.gcs_backend import GCSBackend
 from modelforge.model import merge_strings, split_strings, \
-    assemble_sparse_matrix, disassemble_sparse_matrix, Model
+    assemble_sparse_matrix, disassemble_sparse_matrix, Model, GenericModel
 from modelforge.tests.fake_requests import FakeRequests
 
 
@@ -32,13 +33,16 @@ def get_path(name):
 class ModelTests(unittest.TestCase):
     DOCFREQ_PATH = "test.asdf"
 
+    def setUp(self):
+        self.backend = create_backend()
+
     def test_file(self):
         model = GenericModel(source=get_path(self.DOCFREQ_PATH))
         self._validate_meta(model)
 
     def test_id(self):
         def route(url):
-            if url.endswith(GenericModel.INDEX_FILE):
+            if url.endswith(GCSBackend.INDEX_FILE):
                 return '{"models": {"docfreq": {' \
                        '"f64bacd4-67fb-4c64-8382-399a8e7db52a": ' \
                        '{"url": "https://xxx"}}}}'.encode()
@@ -46,8 +50,9 @@ class ModelTests(unittest.TestCase):
             with open(get_path(self.DOCFREQ_PATH), "rb") as fin:
                 return fin.read()
 
-        modelforge.model.requests = FakeRequests(route)
-        model = GenericModel(source="f64bacd4-67fb-4c64-8382-399a8e7db52a")
+        modelforge.gcs_backend.requests = FakeRequests(route)
+        model = GenericModel(source="f64bacd4-67fb-4c64-8382-399a8e7db52a",
+                             backend=self.backend)
         self._validate_meta(model)
 
     def test_url(self):
@@ -56,8 +61,8 @@ class ModelTests(unittest.TestCase):
             with open(get_path(self.DOCFREQ_PATH), "rb") as fin:
                 return fin.read()
 
-                modelforge.model.requests = FakeRequests(route)
-        model = GenericModel(source="https://xxx")
+        modelforge.gcs_backend.requests = FakeRequests(route)
+        model = GenericModel(source="https://xxx", backend=self.backend)
         self._validate_meta(model)
 
     def test_auto(self):
@@ -65,7 +70,7 @@ class ModelTests(unittest.TestCase):
             NAME = "docfreq"
 
         def route(url):
-            if url.endswith(GenericModel.INDEX_FILE):
+            if url.endswith(GCSBackend.INDEX_FILE):
                 return '{"models": {"docfreq": {' \
                        '"f64bacd4-67fb-4c64-8382-399a8e7db52a": ' \
                        '{"url": "https://xxx"}, ' \
@@ -75,8 +80,8 @@ class ModelTests(unittest.TestCase):
             with open(get_path(self.DOCFREQ_PATH), "rb") as fin:
                 return fin.read()
 
-        modelforge.model.requests = FakeRequests(route)
-        model = FakeModel()
+        modelforge.gcs_backend.requests = FakeRequests(route)
+        model = FakeModel(backend=create_backend())
         self._validate_meta(model)
 
     def test_init_with_model(self):
@@ -159,7 +164,6 @@ class SerializationTests(unittest.TestCase):
 
     def test_pickle(self):
         docfreq = GenericModel(source=get_path(self.DOCFREQ_PATH))
-        docfreq.tree = {"meta": docfreq.tree["meta"]}
         res = pickle.dumps(docfreq)
         docfreq_rec = pickle.loads(res)
 

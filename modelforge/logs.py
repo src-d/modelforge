@@ -56,7 +56,9 @@ def setup_logging(level):
     sys.stdout, sys.stderr = (ensure_utf8_stream(s)
                               for s in (sys.stdout, sys.stderr))
     logging.basicConfig(level=level)
-    if not sys.stdin.closed and sys.stdin.isatty():
-        root = logging.getLogger()
+    root = logging.getLogger()
+    # In some cases root has handlers and basicConfig() is a no-op
+    root.setLevel(level)
+    if not sys.stdin.closed and sys.stdout.isatty():
         handler = root.handlers[0]
         handler.setFormatter(ColorFormatter())

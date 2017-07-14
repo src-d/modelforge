@@ -1,46 +1,75 @@
 import argparse
-import json
 import os
 import unittest
 
-from google.cloud.storage import Client
-
-from modelforge.logs import setup_logging
+import modelforge.gcs_backend
 from modelforge.registry import list_models, publish_model
-from modelforge.tests.test_dump import captured_output, paths
+from modelforge.tests.fake_requests import FakeRequests
+from modelforge.tests.test_dump import captured_output
 
 
-class PublishTests(unittest.TestCase):
-    BUCKET = "test-ast2vec"
-    CREDENTIALS = os.path.join(os.path.dirname(__file__), "..", "..", "gcs.json")
-    ACCESS = os.path.exists(CREDENTIALS)
-    REASON = "No access to Google Cloud Storage"
-
-    @classmethod
-    def setUpClass(cls):
-        setup_logging("INFO")
-
-    @unittest.skip("GCS service account permissions are not ready")
-    @unittest.skipIf(not ACCESS, REASON)
+class RegistryTests(unittest.TestCase):
     def test_list(self):
-        args = argparse.Namespace(gcs=self.BUCKET)
+        def route(url):
+            return """
+            {"models": {
+                "xxx": {
+                    "f64bacd4-67fb-4c64-8382-399a8e7db52a": {
+                        "url": "https://xxx",
+                        "created_at": "12:00"
+                    },
+                    "064bacd4-67fb-4c64-8382-399a8e7db52a": {
+                        "url": "https://xxx2",
+                        "created_at": "13:00"
+                    },
+                    "default": "f64bacd4-67fb-4c64-8382-399a8e7db52a"
+                },
+                "yyy": {
+                    "f74bacd4-67fb-4c64-8382-399a8e7db52b": {
+                        "url": "https://yyy",
+                        "created_at": "11:00"
+                    },
+                    "f64bacd4-67fb-4c64-8382-399a8e7db52b": {
+                        "url": "https://yyy",
+                        "created_at": "12:00"
+                    },
+                    "default": "f64bacd4-67fb-4c64-8382-399a8e7db52b"
+                },
+                "zzz": {
+                    "f64bacd4-67fb-4c64-8382-399a8e7db52c": {
+                        "url": "https://zzz",
+                        "created_at": "12:00"
+                    },
+                    "default": "f64bacd4-67fb-4c64-8382-399a8e7db52c"
+                }
+            }}""".encode()
+
+        modelforge.gcs_backend.requests = FakeRequests(route)
+        args = argparse.Namespace(backend=None, args=None)
         with captured_output() as (out, _, _):
             list_models(args)
         out = out.getvalue().split("\n")
-        for name in (Id2Vec.NAME, NBOW.NAME, DocumentFrequencies.NAME):
+        for name, uuids in (("xxx", ("064bacd4-67fb-4c64-8382-399a8e7db52a",
+                                     "f64bacd4-67fb-4c64-8382-399a8e7db52a")),
+                            ("yyy", ("f64bacd4-67fb-4c64-8382-399a8e7db52b",
+                                     "f74bacd4-67fb-4c64-8382-399a8e7db52b")),
+                            ("zzz", ("f64bacd4-67fb-4c64-8382-399a8e7db52c",))):
             idx = out.index(name)
             self.assertGreaterEqual(idx, 0)
+            im = -1
             while idx < len(out):
                 idx += 1
+                im += 1
                 if out[idx].startswith("  * "):
+                    self.assertIn(uuids[im], out[idx])
                     break
                 else:
                     self.assertEqual(out[idx][:4], "    ")
+                    self.assertIn(uuids[im], out[idx])
             else:
                 self.fail("The default model was not found.")
 
-    @unittest.skip("GCS service account permissions are not ready")
-    @unittest.skipIf(not ACCESS, REASON)
+    @unittest.skip
     def test_publish(self):
         client = Client.from_service_account_json(self.CREDENTIALS)
         bucket = client.get_bucket(self.BUCKET)

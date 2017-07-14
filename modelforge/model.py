@@ -1,18 +1,17 @@
-import io
-import json
 import logging
-import math
 import os
+import re
 import shutil
 import tempfile
+from typing import Union
 import uuid
 
 import asdf
 import numpy
-import requests
 import scipy.sparse
 
-from modelforge.progress_bar import progress_bar
+from modelforge.storage_backend import StorageBackend
+import modelforge.configuration as config
 
 
 class Model:
@@ -21,20 +20,19 @@ class Model:
     """
 
     NAME = None  #: Name of the model. Used as the logging domain, too.
+    VENDOR = None  #: The name of the issuing vendor, e.g. "source{d}"
     DEFAULT_NAME = "default"  #: When no uuid is specified, this is used.
     DEFAULT_FILE_EXT = ".asdf"  #: File extension of the model.
-    DEFAULT_GCS_BUCKET = "datasets.sourced.tech"  #: GCS bucket where the models are stored.
-    INDEX_FILE = "index.json"  #: Models repository index file name.
-    CACHE_DIR_ROOT = os.path.join("~", ".source{d}")  #: Cache root path.
 
-    def __init__(self, source=None, cache_dir=None, gcs_bucket=None,
-                 log_level=logging.INFO):
+    def __init__(self, source: Union[str, "Model"]=None,
+                 cache_dir: str=None, backend: StorageBackend=None,
+                 log_level: int=logging.INFO):
         """
         Initializes a new Model instance.
 
         :param source: UUID, file system path or an URL; None means auto.
         :param cache_dir: The directory where to store the downloaded model.
-        :param gcs_bucket: The name of the Google Cloud Storage bucket to use.
+        :param backend: Remote storage backend to use if ``source`` is a UUID or a URL.
         :param log_level: The logging level applied to this instance.
         """
         if isinstance(source, Model):
@@ -44,11 +42,15 @@ class Model:
             self.__dict__ = source.__dict__
             return
 
+        if backend is not None and not isinstance(backend, StorageBackend):
+            raise TypeError("backend must be an instance of "
+                            "modelforge.storage_backend.StorageBackend")
+
         self._log = logging.getLogger(self.NAME)
         self._log.setLevel(log_level)
         if cache_dir is None:
             if self.NAME is not None:
-                cache_dir = os.path.join(self.CACHE_DIR_ROOT, self.NAME)
+                cache_dir = os.path.join(self.cache_dir(), self.NAME)
             else:
                 cache_dir = tempfile.mkdtemp(prefix="ast2vec-")
         try:
@@ -63,9 +65,11 @@ class Model:
             if os.path.exists(file_name) and (not source or not os.path.exists(source)):
                 source = file_name
             elif source is None or is_uuid:
-                buffer = io.BytesIO()
-                self._fetch(self.compose_index_url(gcs_bucket), buffer)
-                config = json.loads(buffer.getvalue().decode("utf8"))["models"]
+                if backend is None:
+                    raise ValueError("The backend must be set to load a UUID or the default "
+                                     "model.")
+                index = backend.fetch_index()
+                config = index["models"]
                 if self.NAME is not None:
                     source = config[self.NAME][model_id]
                     if not is_uuid:
@@ -80,8 +84,10 @@ class Model:
                     else:
                         raise FileNotFoundError("Model %s not found." % source)
                 source = source["url"]
-            if source.startswith("http://") or source.startswith("https://"):
-                self._fetch(source, file_name)
+            if re.match(r"\w+://", source):
+                if backend is None:
+                    raise ValueError("The backend must be set to load a URL.")
+                backend.fetch_model(source, file_name)
                 source = file_name
             self._log.info("Reading %s...", source)
             with asdf.open(source) as model:
@@ -107,6 +113,9 @@ class Model:
         return str(self._meta)
 
     def __getstate__(self):
+        """
+        Fixes pickling.
+        """
         state = self.__dict__.copy()
         state["_log"] = self._log.level
         return state
@@ -117,36 +126,21 @@ class Model:
         self._log = logging.getLogger(self.NAME)
         self._log.setLevel(log_level)
 
-    @classmethod
-    def compose_index_url(cls, gcs=None):
-        return "https://storage.googleapis.com/%s/%s" % (
-            gcs if gcs else cls.DEFAULT_GCS_BUCKET, cls.INDEX_FILE)
+    @staticmethod
+    def cache_dir():
+        return os.path.join("~", ".", config.VENDOR)
 
     def _load(self, tree):
         raise NotImplementedError()
 
-    def _fetch(self, url, where, chunk_size=65536):
-        self._log.info("Fetching %s...", url)
-        r = requests.get(url, stream=True)
-        if isinstance(where, str):
-            os.makedirs(os.path.dirname(where), exist_ok=True)
-            f = open(where, "wb")
-        else:
-            f = where
-        try:
-            total_length = int(r.headers.get("content-length"))
-            num_chunks = math.ceil(total_length / chunk_size)
-            if num_chunks == 1:
-                f.write(r.content)
-            else:
-                for chunk in progress_bar(
-                        r.iter_content(chunk_size=chunk_size),
-                        self._log, expected_size=num_chunks):
-                    if chunk:
-                        f.write(chunk)
-        finally:
-            if isinstance(where, str):
-                f.close()
+
+class GenericModel(Model):
+    """
+    Compatible with any model.
+    """
+
+    def _load(self, tree):
+        pass
 
 
 def merge_strings(list_of_strings):
