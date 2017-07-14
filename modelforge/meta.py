@@ -5,7 +5,7 @@ import uuid
 ARRAY_COMPRESSION = "zlib"
 
 
-def generate_meta(name, version, *deps):
+def generate_meta(name: str, version: tuple, *deps) -> dict:
     """
     Creates the metadata tree for the given model name and the list of
     dependencies.
@@ -34,7 +34,7 @@ def _extract_index_meta_dependency(meta):
     }
 
 
-def extract_index_meta(meta, model_url):
+def extract_index_meta(meta: dict, model_url: str) -> dict:
     """
     Converts the metadata tree into a dict which is suitable for index.json.
 
@@ -42,10 +42,7 @@ def extract_index_meta(meta, model_url):
     :param model_url: public URL of the model
     :return: converted dict.
     """
-    return {
-        "version": meta["version"],
-        "url": model_url,
-        "dependencies": [_extract_index_meta_dependency(m)
-                         for m in meta["dependencies"]],
-        "created_at": str(meta["created_at"]),
-    }
+    result = _extract_index_meta_dependency(meta)
+    del result["uuid"]
+    result["url"] = model_url
+    return result
