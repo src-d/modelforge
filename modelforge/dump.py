@@ -1,8 +1,7 @@
 import logging
-from pprint import pprint
 
 from modelforge.backends import create_backend_noexc
-from modelforge.model import GenericModel
+import modelforge.models as models
 
 
 def dump_model(args):
@@ -17,6 +16,4 @@ def dump_model(args):
     backend = create_backend_noexc(log, args.backend, args.args)
     if backend is None:
         return 1
-    model = GenericModel(args.input, backend=backend,
-                         log_level=logging._nameToLevel[args.log_level])
-    pprint(model.meta)
+    print(models.GenericModel(args.input, backend=backend))

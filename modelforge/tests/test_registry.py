@@ -1,14 +1,59 @@
 import argparse
+from contextlib import contextmanager
+from datetime import datetime
 import os
 import unittest
 
 import modelforge.gcs_backend
+from modelforge.backends import register_backend
 from modelforge.registry import list_models, publish_model
+from modelforge.storage_backend import StorageBackend
 from modelforge.tests.fake_requests import FakeRequests
 from modelforge.tests.test_dump import captured_output
 
 
+class FakeBackend(StorageBackend):
+    NAME = "fake"
+    called_transaction = False
+    uploaded_model = None
+    uploaded_index = None
+
+    def fetch_model(self, source: str, file: str) -> None:
+        raise NotImplementedError
+
+    def fetch_index(self) -> dict:
+        return {"models": {"docfreq": {
+            "default": "12345678-9abc-def0-1234-56789abcdef0",
+            "12345678-9abc-def0-1234-56789abcdef0": {
+                "url": "https://xxx",
+                "created_at": "13:00"
+            }}}}
+
+    @contextmanager
+    def transaction(self):
+        FakeBackend.called_transaction = True
+        yield None
+
+    def upload_model(self, path: str, meta: dict, force: bool) -> str:
+        assert not FakeBackend.called_transaction
+        FakeBackend.uploaded_model = path, meta, force
+        return "https:/yyy"
+
+    def upload_index(self, index: dict) -> None:
+        assert FakeBackend.called_transaction
+        FakeBackend.uploaded_index = index
+
+    @classmethod
+    def reset(cls):
+        cls.called_transaction = False
+        cls.uploaded_model = None
+        cls.uploaded_index = None
+
+
 class RegistryTests(unittest.TestCase):
+    def tearDown(self):
+        FakeBackend.reset()
+
     def test_list(self):
         def route(url):
             return """
@@ -43,7 +88,6 @@ class RegistryTests(unittest.TestCase):
                     "default": "f64bacd4-67fb-4c64-8382-399a8e7db52c"
                 }
             }}""".encode()
-
         modelforge.gcs_backend.requests = FakeRequests(route)
         args = argparse.Namespace(backend=None, args=None)
         with captured_output() as (out, _, _):
@@ -69,57 +113,77 @@ class RegistryTests(unittest.TestCase):
             else:
                 self.fail("The default model was not found.")
 
-    @unittest.skip
     def test_publish(self):
-        client = Client.from_service_account_json(self.CREDENTIALS)
-        bucket = client.get_bucket(self.BUCKET)
-        blob = bucket.get_blob(Id2Vec.INDEX_FILE)
-        backup = blob.download_as_string()
-        index = json.loads(backup.decode("utf-8"))
-        del index["models"]["id2vec"]["92609e70-f79c-46b5-8419-55726e873cfc"]
-        del index["models"]["id2vec"]["default"]
-        updated = json.dumps(index, indent=4, sort_keys=True)
-        blob.upload_from_string(updated)
-        try:
-            args = argparse.Namespace(
-                model=os.path.join(os.path.dirname(__file__), paths.ID2VEC),
-                gcs=self.BUCKET, update_default=True, force=False,
-                credentials=self.CREDENTIALS)
-            with captured_output() as (out, err, log):
-                result = publish_model(args)
-            self.assertEqual(result, 1)
-            self.assertIn("Model 92609e70-f79c-46b5-8419-55726e873cfc already "
-                          "exists, aborted", log.getvalue())
-            blob = bucket.get_blob(
-                "models/id2vec/92609e70-f79c-46b5-8419-55726e873cfc.asdf")
-            bucket.rename_blob(
-                blob,
-                "models/id2vec/92609e70-f79c-46b5-8419-55726e873cfc.asdf.bak")
-            try:
-                with captured_output() as (out, err, log):
-                    result = publish_model(args)
-                blob = bucket.get_blob(
-                    "models/id2vec/92609e70-f79c-46b5-8419-55726e873cfc.asdf")
-                self.assertTrue(blob.exists())
-                blob.delete()
-                self.assertIsNone(result)
-                self.assertIn("Uploaded as ", log.getvalue())
-                self.assertIn("92609e70-f79c-46b5-8419-55726e873cfc", log.getvalue())
-            finally:
-                blob = bucket.get_blob(
-                    "models/id2vec/92609e70-f79c-46b5-8419-55726e873cfc.asdf.bak")
-                bucket.rename_blob(
-                    blob, "models/id2vec/92609e70-f79c-46b5-8419-55726e873cfc.asdf")
-                blob = bucket.get_blob(
-                    "models/id2vec/92609e70-f79c-46b5-8419-55726e873cfc.asdf")
-                blob.make_public()
-            blob = bucket.get_blob(Id2Vec.INDEX_FILE)
-            self.assertTrue(blob.download_as_string(), backup)
-        finally:
-            blob = bucket.get_blob(Id2Vec.INDEX_FILE)
-            blob.upload_from_string(backup)
-            blob.make_public()
+        path = os.path.join(os.path.dirname(__file__), "test.asdf")
+        register_backend(FakeBackend)
+        args = argparse.Namespace(
+            backend=FakeBackend.NAME, args=None, force=True, update_default=True, model=path)
+        path = os.path.abspath(path)
+        with captured_output() as (_, _, log):
+            publish_model(args)
+        self.assertEqual(log.getvalue(), """Reading %s...
+Uploaded as https:/yyy
+Updating the models index...
+""" % path)
+        self.assertTrue(FakeBackend.called_transaction)
+        self.assertEqual(FakeBackend.uploaded_model[0], path)
+        self.assertEqual(FakeBackend.uploaded_model[1], {
+            "created_at": datetime(2017, 6, 19, 9, 59, 14, 766638),
+            "dependencies": [],
+            "model": "docfreq",
+            "uuid": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
+            "version": [1, 0, 0]})
+        self.assertTrue(FakeBackend.uploaded_model[2])
+        self.assertEqual(FakeBackend.uploaded_index, {
+            "models": {"docfreq": {
+                "default": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
+                "f64bacd4-67fb-4c64-8382-399a8e7db52a": {
+                    "version": [1, 0, 0],
+                    "dependencies": [],
+                    "created_at": "2017-06-19 09:59:14.766638",
+                    "url": "https:/yyy"},
+                "12345678-9abc-def0-1234-56789abcdef0": {
+                    "url": "https://xxx",
+                    "created_at": "13:00"
+                }
+            }}
+        })
 
+    def test_publish_no_default_no_force(self):
+        path = os.path.join(os.path.dirname(__file__), "test.asdf")
+        register_backend(FakeBackend)
+        args = argparse.Namespace(
+            backend=FakeBackend.NAME, args=None, force=False, update_default=False, model=path)
+        path = os.path.abspath(path)
+        with captured_output() as (_, _, log):
+            publish_model(args)
+        self.assertEqual(log.getvalue(), """Reading %s...
+Uploaded as https:/yyy
+Updating the models index...
+""" % path)
+        self.assertTrue(FakeBackend.called_transaction)
+        self.assertEqual(FakeBackend.uploaded_model[0], path)
+        self.assertEqual(FakeBackend.uploaded_model[1], {
+            "created_at": datetime(2017, 6, 19, 9, 59, 14, 766638),
+            "dependencies": [],
+            "model": "docfreq",
+            "uuid": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
+            "version": [1, 0, 0]})
+        self.assertFalse(FakeBackend.uploaded_model[2])
+        self.assertEqual(FakeBackend.uploaded_index, {
+            "models": {"docfreq": {
+                "default": "12345678-9abc-def0-1234-56789abcdef0",
+                "f64bacd4-67fb-4c64-8382-399a8e7db52a": {
+                    "version": [1, 0, 0],
+                    "dependencies": [],
+                    "created_at": "2017-06-19 09:59:14.766638",
+                    "url": "https:/yyy"},
+                "12345678-9abc-def0-1234-56789abcdef0": {
+                    "url": "https://xxx",
+                    "created_at": "13:00"
+                }
+            }}
+        })
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,17 +1,19 @@
+import inspect
 import logging
 import os
 import re
 import shutil
 import tempfile
-from typing import Union
 import uuid
+from pprint import pformat
+from typing import Union
 
 import asdf
 import numpy
 import scipy.sparse
 
-from modelforge.storage_backend import StorageBackend
 import modelforge.configuration as config
+from modelforge.storage_backend import StorageBackend
 
 
 class Model:
@@ -48,6 +50,7 @@ class Model:
 
         self._log = logging.getLogger(self.NAME)
         self._log.setLevel(log_level)
+        self._source = source
         if cache_dir is None:
             if self.NAME is not None:
                 cache_dir = os.path.join(self.cache_dir(), self.NAME)
@@ -97,7 +100,7 @@ class Model:
                     raise ValueError(
                         "The supplied model is of the wrong type: needed "
                         "%s, got %s." % (self.NAME, self._meta["model"]))
-                self._load(tree)
+                self.load(tree)
         finally:
             if self.NAME is None:
                 shutil.rmtree(cache_dir)
@@ -110,7 +113,23 @@ class Model:
         return self._meta
 
     def __str__(self):
-        return str(self._meta)
+        try:
+            dump = self.dump()
+        except NotImplementedError:
+            dump = ""
+        if dump:
+            dump = "\n" + dump
+        return "%s%s" % (pformat(self.meta), dump)
+
+    def __repr__(self):
+        module = inspect.getmodule(self)
+        module_name = module.__name__
+        if module_name == "__main__":
+            if module.__spec__ is not None:
+                module_name = module.__spec__.name
+            else:
+                module_name = "[%s]" % module.__file__
+        return "%s.%s(source=%s)" % (module_name, type(self).__name__, self._source)
 
     def __getstate__(self):
         """
@@ -130,17 +149,21 @@ class Model:
     def cache_dir():
         return os.path.join("~", ".", config.VENDOR)
 
-    def _load(self, tree):
+    def load(self, tree: dict) -> None:
+        """
+        Attaches the needed data from the tree.
+
+        :param tree: asdf file tree.
+        :return: None
+        """
         raise NotImplementedError()
 
-
-class GenericModel(Model):
-    """
-    Compatible with any model.
-    """
-
-    def _load(self, tree):
-        pass
+    def dump(self) -> str:
+        """
+        Returns the string with the brief information about the model.
+        Should not include any metadata.
+        """
+        raise NotImplementedError()
 
 
 def merge_strings(list_of_strings):

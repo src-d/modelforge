@@ -2,10 +2,25 @@ import argparse
 import os
 import unittest
 
-import modelforge.gcs_backend as gcs_backend
 from modelforge.dump import dump_model
+import modelforge.gcs_backend as gcs_backend
+from modelforge.model import Model
+import modelforge.models as models
 from modelforge.tests.capture import captured_output
 from modelforge.tests.fake_requests import FakeRequests
+
+
+class TestModel(Model):
+    NAME = "docfreq"
+
+    def load(self, tree):
+        self.docs = tree["docs"]
+
+    def dump(self):
+        return str(self.docs)
+
+
+models.register_model(TestModel)
 
 
 class DumpTests(unittest.TestCase):
@@ -14,6 +29,7 @@ class DumpTests(unittest.TestCase):
  'model': 'docfreq',
  'uuid': 'f64bacd4-67fb-4c64-8382-399a8e7db52a',
  'version': [1, 0, 0]}
+1000
 """
     DOCFREQ_PATH = "test.asdf"
 

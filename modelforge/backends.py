@@ -1,10 +1,17 @@
 import logging
+from typing import Type
 
 import modelforge.configuration as config
 from modelforge.gcs_backend import GCSBackend
+from modelforge.storage_backend import StorageBackend
+
+__registry__ = {b.NAME: b for b in (GCSBackend,)}
 
 
-registry = {b.NAME: b for b in (GCSBackend,)}
+def register_backend(cls: Type[StorageBackend]):
+    if not issubclass(cls, StorageBackend):
+        raise TypeError("cls must be a subclass of StorageBackend")
+    __registry__[cls.NAME] = cls
 
 
 def create_backend(name: str=None, args: str=None):
@@ -16,7 +23,7 @@ def create_backend(name: str=None, args: str=None):
         kwargs = dict(p.split("=") for p in args.split(","))
     except:
         raise ValueError("Invalid args") from None
-    return registry[name](**kwargs)
+    return __registry__[name](**kwargs)
 
 
 def create_backend_noexc(log: logging.Logger, name: str=None, args: str=None):
@@ -24,7 +31,7 @@ def create_backend_noexc(log: logging.Logger, name: str=None, args: str=None):
         return create_backend(name, args)
     except KeyError:
         log.critical("No such backend: %s (looked in %s)",
-                     name, list(registry.keys()))
+                     name, list(__registry__.keys()))
         return None
     except ValueError:
         log.critical("Invalid backend arguments: %s", args)

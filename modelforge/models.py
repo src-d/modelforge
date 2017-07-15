@@ -1,0 +1,45 @@
+import logging
+from typing import Type, Union, Iterable
+
+from modelforge import Model
+from modelforge.model import Model
+from modelforge.storage_backend import StorageBackend
+
+__models__ = set()
+
+
+def register_model(model: Type[Model]):
+    """
+    Includes the given model class into the registry.
+
+    :param model: The class of the registered model.
+    :return: None
+    """
+    if not issubclass(model, Model):
+        raise TypeError("model bust be a subclass of Model")
+    if issubclass(model, GenericModel):
+        raise TypeError("model must not be a subclass of GenericModel")
+    __models__.add(model)
+
+
+class GenericModel(Model):
+    """
+    Compatible with any model. Allows to load and dump it.
+    """
+    def __init__(self, source: Union[str, "Model"]=None, dummy=False,
+                 cache_dir: str=None, backend: StorageBackend=None,
+                 log_level: int=logging.INFO):
+        self._models = {m.NAME: m for m in __models__} if not dummy else {}
+        super(GenericModel, self).__init__(
+            source=source, cache_dir=cache_dir, backend=backend, log_level=log_level)
+
+    def load(self, tree):
+        model = self._models.get(self.meta["model"])
+        if model is not None:
+            model.load(self, tree)
+
+    def dump(self):
+        model = self._models.get(self.meta["model"])
+        if model is not None:
+            return model.dump(self)
+        return ""

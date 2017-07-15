@@ -1,6 +1,9 @@
 class StorageBackend:
     NAME = None
 
+    def __init__(self, **kwargs):
+        pass
+
     def fetch_model(self, source: str, file: str) -> None:
         """
         Downloads the model from the remote storage.
@@ -49,4 +52,7 @@ class StorageBackend:
 
 
 class TransactionRequiredError(Exception):
+    """
+    User tried to change the index and did not acquire a transaction.
+    """
     pass

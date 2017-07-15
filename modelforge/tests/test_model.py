@@ -10,19 +10,32 @@ import modelforge.gcs_backend
 from modelforge.backends import create_backend
 from modelforge.gcs_backend import GCSBackend
 from modelforge.model import merge_strings, split_strings, \
-    assemble_sparse_matrix, disassemble_sparse_matrix, Model, GenericModel
+    assemble_sparse_matrix, disassemble_sparse_matrix, Model
+from modelforge.models import GenericModel
 from modelforge.tests.fake_requests import FakeRequests
+from modelforge.tests.test_dump import TestModel
 
 
 class Model1(Model):
-    def _load(self, tree):
+    def load(self, tree):
         pass
+
+    def dump(self):
+        return "model1"
 
 
 class Model2(Model):
     NAME = "model2"
 
-    def _load(self, tree):
+    def load(self, tree):
+        pass
+
+    def dump(self):
+        return "model2"
+
+
+class Model3(Model):
+    def load(self, tree):
         pass
 
 
@@ -91,6 +104,25 @@ class ModelTests(unittest.TestCase):
         # init with wrong model
         with self.assertRaises(TypeError):
             Model2(source=model1)
+
+    def test_repr_str(self):
+        path = get_path(self.DOCFREQ_PATH)
+        model = Model1(source=path)
+        repr1 = repr(model)
+        try:
+            self.assertIn("test_model.py].Model1(source=%s)" % path, repr1)
+        except AssertionError:
+            self.assertEqual("modelforge.tests.test_model.Model1(source=%s)" % path, repr1)
+        str1 = str(model)
+        self.assertEqual(len(str1.split("\n")), 6)
+        self.assertIn("\nmodel1", str1)
+        self.assertIn("'uuid': 'f64bacd4-67fb-4c64-8382-399a8e7db52a'", str1)
+        model = Model3(source=path)
+        str2 = str(model)
+        self.assertEqual(len(str2.split("\n")), 5)
+        model = TestModel(source=path)
+        repr2 = repr(model)
+        self.assertEqual("modelforge.tests.test_dump.TestModel(source=%s)" % path, repr2)
 
     def _validate_meta(self, model):
         meta = model.meta
