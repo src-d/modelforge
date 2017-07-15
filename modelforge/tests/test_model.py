@@ -1,16 +1,19 @@
 import datetime
 import os
 import pickle
+import tempfile
 import unittest
 
+import asdf
 import numpy
 from scipy.sparse import csr_matrix
 
 import modelforge.gcs_backend
+from modelforge import generate_meta
 from modelforge.backends import create_backend
 from modelforge.gcs_backend import GCSBackend
 from modelforge.model import merge_strings, split_strings, \
-    assemble_sparse_matrix, disassemble_sparse_matrix, Model
+    assemble_sparse_matrix, disassemble_sparse_matrix, Model, write_model
 from modelforge.models import GenericModel
 from modelforge.tests.fake_requests import FakeRequests
 from modelforge.tests.test_dump import TestModel
@@ -201,6 +204,14 @@ class SerializationTests(unittest.TestCase):
 
         for k in docfreq.__dict__:
             self.assertEqual(docfreq.__dict__[k], docfreq_rec.__dict__[k])
+
+    def test_write(self):
+        meta = generate_meta("test", (1, 0, 3))
+        with tempfile.NamedTemporaryFile() as tmp:
+            write_model(meta, {"xxx": 100500}, tmp.name)
+            with asdf.open(tmp.name) as f:
+                self.assertEqual(f.tree["meta"]["model"], "test")
+                self.assertEqual(f.tree["xxx"], 100500)
 
 
 if __name__ == "__main__":

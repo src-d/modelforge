@@ -15,6 +15,8 @@ import scipy.sparse
 import modelforge.configuration as config
 from modelforge.storage_backend import StorageBackend
 
+ARRAY_COMPRESSION = "zlib"
+
 
 class Model:
     """
@@ -252,3 +254,18 @@ def assemble_sparse_matrix(subtree):
     matrix_class = getattr(scipy.sparse, "%s_matrix" % subtree["format"])
     matrix = matrix_class(tuple(subtree["data"]), shape=subtree["shape"])
     return matrix
+
+
+def write_model(meta: dict, tree: dict, output: str) -> None:
+    """
+    Writes the model to disk.
+
+    :param meta: Metadata of the model. Most likely generated with \
+                 :func:`modelforge.meta.generate_meta`.
+    :param tree: The data dict.
+    :param output: The output file path.
+    :return: None
+    """
+    final_tree = {"meta": meta}
+    final_tree.update(tree)
+    asdf.AsdfFile(final_tree).write_to(output, all_array_compression=ARRAY_COMPRESSION)

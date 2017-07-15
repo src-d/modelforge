@@ -24,7 +24,7 @@ def main():
         p.add_argument("--args", default=None, help="Backend's arguments.")
 
     dump_parser = subparsers.add_parser(
-        "dump", help="Dump a model to stdout.")
+        "dump", help="Print a brief information about the model to stdout.")
     dump_parser.set_defaults(handler=dump_model)
     dump_parser.add_argument(
         "input", help="Path to the model file, URL or UUID.")
