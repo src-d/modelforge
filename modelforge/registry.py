@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os
 
@@ -7,6 +8,7 @@ from modelforge.meta import extract_index_meta
 from modelforge.model import Model
 from modelforge.models import GenericModel
 from modelforge.backends import create_backend_noexc
+from modelforge.storage_backend import StorageBackend
 
 
 def supply_backend(name):
@@ -22,7 +24,7 @@ def supply_backend(name):
 
 
 @supply_backend("publish")
-def publish_model(args, backend, log):
+def publish_model(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
     Pushes the model to Google Cloud Storage and updates the index file.
 
@@ -53,7 +55,7 @@ def publish_model(args, backend, log):
 
 
 @supply_backend("list")
-def list_models(args, backend, log):
+def list_models(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
     Outputs the list of known models in the registry.
 
@@ -74,3 +76,25 @@ def list_models(args, backend, log):
                 reverse=True):
             print("  %s %s" % ("*" if default == mid else " ", mid),
                   meta["created_at"])
+
+
+@supply_backend("list")
+def initialize_registry(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
+    """
+    Initialize the registry - list and publish will fail otherwise.
+
+    :param args: :class:`argparse.Namespace` with "backend", "args" and "force".
+    :return: None
+    """
+
+    try:
+        backend.fetch_index()
+        if not args.force:
+            log.warning("Registry is already initialized")
+            return
+    except FileNotFoundError:
+        pass
+    # The transaction is not needed here, but upload_index() will raise otherwise
+    with backend.transaction():
+        backend.upload_index({"models": {}})
+    log.info("Successfully initialized")

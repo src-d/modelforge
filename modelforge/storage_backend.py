@@ -19,6 +19,7 @@ class StorageBackend:
         Downloads the index from the remote storage.
 
         :return: The current index.
+        :raise FileNotFoundError: If there is not index - need to initialize.
         """
         raise NotImplementedError
 

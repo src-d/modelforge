@@ -1,33 +1,37 @@
 import argparse
 from contextlib import contextmanager
+from copy import deepcopy
 from datetime import datetime
 import os
 import unittest
 
 import modelforge.gcs_backend
 from modelforge.backends import register_backend
-from modelforge.registry import list_models, publish_model
+from modelforge.registry import list_models, publish_model, initialize_registry
 from modelforge.storage_backend import StorageBackend
 from modelforge.tests.fake_requests import FakeRequests
 from modelforge.tests.test_dump import captured_output
 
 
+@register_backend
 class FakeBackend(StorageBackend):
     NAME = "fake"
     called_transaction = False
     uploaded_model = None
     uploaded_index = None
+    default_index = {"models": {"docfreq": {
+        "default": "12345678-9abc-def0-1234-56789abcdef0",
+        "12345678-9abc-def0-1234-56789abcdef0": {
+            "url": "https://xxx",
+            "created_at": "13:00"
+        }}}}
+    index = deepcopy(default_index)
 
     def fetch_model(self, source: str, file: str) -> None:
         raise NotImplementedError
 
     def fetch_index(self) -> dict:
-        return {"models": {"docfreq": {
-            "default": "12345678-9abc-def0-1234-56789abcdef0",
-            "12345678-9abc-def0-1234-56789abcdef0": {
-                "url": "https://xxx",
-                "created_at": "13:00"
-            }}}}
+        return self.index
 
     @contextmanager
     def transaction(self):
@@ -48,10 +52,11 @@ class FakeBackend(StorageBackend):
         cls.called_transaction = False
         cls.uploaded_model = None
         cls.uploaded_index = None
+        cls.index = deepcopy(cls.default_index)
 
 
 class RegistryTests(unittest.TestCase):
-    def tearDown(self):
+    def setUp(self):
         FakeBackend.reset()
 
     def test_list(self):
@@ -115,7 +120,6 @@ class RegistryTests(unittest.TestCase):
 
     def test_publish(self):
         path = os.path.join(os.path.dirname(__file__), "test.asdf")
-        register_backend(FakeBackend)
         args = argparse.Namespace(
             backend=FakeBackend.NAME, args=None, force=True, update_default=True, model=path)
         path = os.path.abspath(path)
@@ -151,7 +155,6 @@ Updating the models index...
 
     def test_publish_no_default_no_force(self):
         path = os.path.join(os.path.dirname(__file__), "test.asdf")
-        register_backend(FakeBackend)
         args = argparse.Namespace(
             backend=FakeBackend.NAME, args=None, force=False, update_default=False, model=path)
         path = os.path.abspath(path)
@@ -184,6 +187,39 @@ Updating the models index...
                 }
             }}
         })
+
+    def test_publish_fresh(self):
+        path = os.path.join(os.path.dirname(__file__), "test.asdf")
+        args = argparse.Namespace(
+            backend=FakeBackend.NAME, args=None, force=True, update_default=True, model=path)
+        FakeBackend.index = {"models": {}}
+        with captured_output() as (_, _, log):
+            publish_model(args)
+        self.assertEqual(FakeBackend.uploaded_index, {
+            "models": {"docfreq": {
+                "default": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
+                "f64bacd4-67fb-4c64-8382-399a8e7db52a": {
+                    "version": [1, 0, 0],
+                    "dependencies": [],
+                    "created_at": "2017-06-19 09:59:14.766638",
+                    "url": "https:/yyy"}
+            }}
+        })
+
+    def test_initialize(self):
+        args = argparse.Namespace(backend=FakeBackend.NAME, args=None, force=True)
+        with captured_output() as (_, _, log):
+            initialize_registry(args)
+        self.assertTrue(FakeBackend.called_transaction)
+        self.assertEqual(FakeBackend.uploaded_index, {"models": {}})
+
+    def test_initialize_noforce(self):
+        args = argparse.Namespace(backend=FakeBackend.NAME, args=None, force=False)
+        with captured_output() as (_, _, log):
+            initialize_registry(args)
+        self.assertFalse(FakeBackend.called_transaction)
+        self.assertIsNone(FakeBackend.uploaded_index)
+
 
 if __name__ == "__main__":
     unittest.main()

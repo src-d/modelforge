@@ -10,6 +10,7 @@ from modelforge.tests.capture import captured_output
 from modelforge.tests.fake_requests import FakeRequests
 
 
+@models.register_model
 class TestModel(Model):
     NAME = "docfreq"
 
@@ -18,9 +19,6 @@ class TestModel(Model):
 
     def dump(self):
         return str(self.docs)
-
-
-models.register_model(TestModel)
 
 
 class DumpTests(unittest.TestCase):

@@ -8,18 +8,19 @@ from modelforge.storage_backend import StorageBackend
 __models__ = set()
 
 
-def register_model(model: Type[Model]):
+def register_model(cls: Type[Model]):
     """
     Includes the given model class into the registry.
 
-    :param model: The class of the registered model.
+    :param cls: The class of the registered model.
     :return: None
     """
-    if not issubclass(model, Model):
+    if not issubclass(cls, Model):
         raise TypeError("model bust be a subclass of Model")
-    if issubclass(model, GenericModel):
+    if issubclass(cls, GenericModel):
         raise TypeError("model must not be a subclass of GenericModel")
-    __models__.add(model)
+    __models__.add(cls)
+    return cls
 
 
 class GenericModel(Model):

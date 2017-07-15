@@ -12,6 +12,7 @@ def register_backend(cls: Type[StorageBackend]):
     if not issubclass(cls, StorageBackend):
         raise TypeError("cls must be a subclass of StorageBackend")
     __registry__[cls.NAME] = cls
+    return cls
 
 
 def create_backend(name: str=None, args: str=None):

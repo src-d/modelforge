@@ -3,7 +3,7 @@ import logging
 import sys
 
 from modelforge.logs import setup_logging
-from modelforge.registry import publish_model, list_models
+from modelforge.registry import publish_model, list_models, initialize_registry
 from modelforge.dump import dump_model
 
 
@@ -45,6 +45,11 @@ def main():
         "list-models", help="Lists all the models in the registry.")
     list_parser.set_defaults(handler=list_models)
     list_parser.add_argument("--gcs", default=None, help="GCS bucket to use.")
+
+    init_parser = subparsers.add_parser(
+        "init-registry", help="Initialize the registry.")
+    init_parser.set_defaults(handler=initialize_registry)
+    init_parser.add_argument("--gcs", default=None, help="GCS bucket to use.")
 
     args = parser.parse_args()
     args.log_level = logging._nameToLevel[args.log_level]
