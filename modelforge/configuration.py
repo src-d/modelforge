@@ -11,9 +11,14 @@ OVERRIDE_FILE = "modelforgecfg.py"
 
 
 def refresh():
-    override_files = [
-        os.path.join(os.path.dirname(stack.filename), OVERRIDE_FILE)
-        for stack in traceback.extract_stack()] + [OVERRIDE_FILE]
+    override_files = []
+    for stack in traceback.extract_stack():
+        f = os.path.join(os.path.dirname(stack.filename), OVERRIDE_FILE)
+        if f not in override_files:
+            override_files.insert(0, f)
+    if OVERRIDE_FILE in override_files:
+        del override_files[override_files.index(OVERRIDE_FILE)]
+    override_files.append(OVERRIDE_FILE)
 
     for override_file in override_files:
         if not os.path.isfile(override_file):
