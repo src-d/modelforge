@@ -37,10 +37,12 @@ class GenericModel(Model):
     def load(self, tree):
         model = self._models.get(self.meta["model"])
         if model is not None:
-            model.load(self, tree)
+            # we overwrite our class - shady, but works
+            self.__class__ = model
+            log_level = self._log.level
+            self._log = logging.getLogger(self.NAME)
+            self._log.setLevel(log_level)
+            self.load(tree)
 
     def dump(self):
-        model = self._models.get(self.meta["model"])
-        if model is not None:
-            return model.dump(self)
         return ""
