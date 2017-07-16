@@ -20,10 +20,13 @@ def create_backend(name: str=None, args: str=None):
         name = config.BACKEND
     if not args:
         args = config.BACKEND_ARGS
-    try:
-        kwargs = dict(p.split("=") for p in args.split(","))
-    except:
-        raise ValueError("Invalid args") from None
+    if args:
+        try:
+            kwargs = dict(p.split("=") for p in args.split(","))
+        except:
+            raise ValueError("Invalid args") from None
+    else:
+        kwargs = {}
     return __registry__[name](**kwargs)
 
 
