@@ -34,7 +34,7 @@ class FakeBackend(StorageBackend):
         return self.index
 
     @contextmanager
-    def transaction(self):
+    def lock(self):
         FakeBackend.called_transaction = True
         yield None
 

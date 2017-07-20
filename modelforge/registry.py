@@ -43,7 +43,7 @@ def publish_model(args: argparse.Namespace, backend: StorageBackend, log: loggin
         return 1
     meta = model.meta
     model_url = backend.upload_model(path, meta, args.force)
-    with backend.transaction():
+    with backend.lock():
         log.info("Uploaded as %s", model_url)
         log.info("Updating the models index...")
         index = backend.fetch_index()
@@ -94,7 +94,7 @@ def initialize_registry(args: argparse.Namespace, backend: StorageBackend, log: 
             return
     except FileNotFoundError:
         pass
-    # The transaction is not needed here, but upload_index() will raise otherwise
-    with backend.transaction():
+    # The lock is not needed here, but upload_index() will raise otherwise
+    with backend.lock():
         backend.upload_index({"models": {}})
     log.info("Successfully initialized")

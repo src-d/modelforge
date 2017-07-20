@@ -23,9 +23,9 @@ class StorageBackend:
         """
         raise NotImplementedError
 
-    def transaction(self):
+    def lock(self):
         """
-        Returns a scoped object which holds a transaction.
+        Returns a scoped object which holds a lock.
         """
         raise NotImplementedError
 
@@ -37,7 +37,7 @@ class StorageBackend:
         :param meta: Metadata of the model.
         :param force: Overwrite an existing model.
         :return: URL of the uploaded model.
-        :raises TransactionRequiredError: If called not in a transaction scope.
+        :raises TransactionRequiredError: If called not in a lock scope.
         """
         raise NotImplementedError
 
@@ -47,13 +47,13 @@ class StorageBackend:
 
         :param index: The new index.
         :return: None
-        :raises TransactionRequiredError: If called not in a transaction scope.
+        :raises TransactionRequiredError: If called not in a lock scope.
         """
         raise NotImplementedError
 
 
 class TransactionRequiredError(Exception):
     """
-    User tried to change the index and did not acquire a transaction.
+    User tried to change the index and did not acquire a lock.
     """
     pass

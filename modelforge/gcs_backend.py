@@ -92,10 +92,14 @@ class GCSBackend(StorageBackend):
         return json.loads(buffer.getvalue().decode("utf8"))
 
     @contextmanager
-    def begin_transaction(self):
+    def lock(self):
+        """
+        This is the best we can do. It is impossible to acquire the lock reliably without
+        using any additional services. test-and-set is impossible to implement.
+        :return:
+        """
         log = self._log
         log.info("Locking the bucket...")
-        transaction = uuid.uuid4().hex.encode()
         if self.credentials:
             client = Client.from_service_account_json(self.credentials)
         else:
@@ -104,24 +108,19 @@ class GCSBackend(StorageBackend):
         self._bucket = bucket
         sentinel = bucket.blob("index.lock")
         try:
-            locked = False
-            while not locked:
-                while sentinel.exists():
-                    log.warning("Failed to acquire the lock, waiting...")
-                    time.sleep(1)
-                # At this step, several agents may think the lockfile does not exist
-                try:
-                    sentinel.upload_from_string(transaction)
-                    # Only one agent succeeds to check this condition
-                    locked = sentinel.download_as_string() == transaction
-                except:
-                    # GCS detects the changed-while-reading collision
-                    log.warning("Failed to acquire the lock, retrying...")
+            while sentinel.exists():
+                log.warning("Failed to acquire the lock, waiting...")
+                time.sleep(1)
+            sentinel.upload_from_string(b"")
+            # Several agents can get here. No test-and-set, sorry!
             yield None
         finally:
             self._bucket = None
             if sentinel is not None:
-                sentinel.delete()
+                try:
+                    sentinel.delete()
+                except:
+                    pass
 
     def upload_model(self, path, meta, force):
         bucket = self._bucket
