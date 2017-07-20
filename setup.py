@@ -1,4 +1,10 @@
 from setuptools import setup, find_packages
+import sys
+
+if sys.version_info < (3, 5, 0):
+    typing = ["typing"]
+else:
+    typing = []
 
 
 setup(
@@ -22,7 +28,7 @@ setup(
                       "scipy>=0.17,<1.0",
                       "clint>=0.5.0",
                       "google-cloud-storage>=1.0,<2.0",
-                      "python-dateutil"],
+                      "python-dateutil"] + typing,
     package_data={"": ["LICENSE", "README.md"]},
     classifiers=[
         "Development Status :: 4 - Beta",
