@@ -57,7 +57,7 @@ class GCSBackend(StorageBackend):
     DEFAULT_CHUNK_SIZE = 65536
     INDEX_FILE = "index.json"
 
-    def __init__(self, bucket: str, credentials: str="", log_level: int=logging.INFO):
+    def __init__(self, bucket: str, credentials: str="", log_level: int=logging.DEBUG):
         """
         Initializes a new instance of :class:`GCSBackend`.
 

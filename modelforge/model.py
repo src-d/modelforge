@@ -30,7 +30,7 @@ class Model:
 
     def __init__(self, source: Union[str, "Model"]=None,
                  cache_dir: str=None, backend: StorageBackend=None,
-                 log_level: int=logging.INFO):
+                 log_level: int=logging.DEBUG):
         """
         Initializes a new Model instance.
 
@@ -149,7 +149,7 @@ class Model:
 
     @staticmethod
     def cache_dir():
-        return os.path.join("~", ".", config.VENDOR)
+        return os.path.join("~", "." + config.VENDOR)
 
     def load(self, tree: dict) -> None:
         """

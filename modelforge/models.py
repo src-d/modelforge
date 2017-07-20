@@ -29,7 +29,7 @@ class GenericModel(Model):
     """
     def __init__(self, source: Union[str, "Model"]=None, dummy=False,
                  cache_dir: str=None, backend: StorageBackend=None,
-                 log_level: int=logging.INFO):
+                 log_level: int=logging.DEBUG):
         self._models = {m.NAME: m for m in __models__} if not dummy else {}
         super(GenericModel, self).__init__(
             source=source, cache_dir=cache_dir, backend=backend, log_level=log_level)
