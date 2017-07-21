@@ -10,15 +10,14 @@ else:
 setup(
     name="modelforge",
     description='APIs and tools to work with abstract "models" - files '
-                'with numpy arrays and metadata. The storage is Google Cloud '
-                'Storage. It is possible to publish models, list them, the '
-                'cache is built-in.',
-    version="1.0.0",
+                'with numpy arrays and metadata. It is possible to publish '
+                'models, list them. There is a built-in cache. Storage has backends.',
+    version="0.1.0-alpha",
     license="Apache 2.0",
     author="source{d}",
     author_email="machine-learning@sourced.tech",
     url="https://github.com/src-d/modelforge",
-    download_url='https://github.com/src-d/modelforge',
+    download_url="https://github.com/src-d/modelforge",
     packages=find_packages(exclude=("modelforge.tests",)),
     keywords=["model", "asdf", "gcs", "google cloud storage",
               "machine learning"],
@@ -31,7 +30,7 @@ setup(
                       "python-dateutil"] + typing,
     package_data={"": ["LICENSE", "README.md"]},
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 3 - Alpha",
         "Environment :: Console",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
