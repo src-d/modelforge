@@ -151,6 +151,13 @@ class Model:
     def cache_dir():
         return os.path.join("~", "." + config.VENDOR)
 
+    def get_dependency(self, name):
+        deps = self.meta["dependencies"]
+        for d in deps:
+            if d["model"] == name:
+                return d
+        raise KeyError("%s not found in %s." % (name, deps))
+
     def load(self, tree: dict) -> None:
         """
         Attaches the needed data from the tree.

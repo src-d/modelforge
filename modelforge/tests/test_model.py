@@ -127,6 +127,12 @@ class ModelTests(unittest.TestCase):
         repr2 = repr(model)
         self.assertEqual("modelforge.tests.test_dump.TestModel(source=%s)" % path, repr2)
 
+    def test_get_dependency(self):
+        model = Model1(source=get_path(self.DOCFREQ_PATH))
+        model.meta["dependencies"] = [{"model": "xxx", "uuid": "yyy"},
+                                      {"model": "zzz", "uuid": None}]
+        self.assertEqual(model.get_dependency("xxx")["uuid"], "yyy")
+
     def _validate_meta(self, model):
         meta = model.meta
         self.assertIsInstance(meta, dict)

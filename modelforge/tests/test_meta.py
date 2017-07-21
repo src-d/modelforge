@@ -20,10 +20,12 @@ class MetaTests(unittest.TestCase):
     def test_extract_index_meta(self):
         dt = datetime.now()
         meta = {
+            "model": "zzz",
             "version": [1, 0, 2],
             "created_at": dt,
             "uuid": None,
             "dependencies": [{
+                "model": "xxx",
                 "version": [1, 0, 3],
                 "created_at": dt,
                 "uuid": "?",
@@ -32,12 +34,15 @@ class MetaTests(unittest.TestCase):
         }
         converted = extract_index_meta(meta, "https://xxx")
         self.assertIsInstance(converted, dict)
+        self.assertNotIn("model", converted)
+        self.assertNotIn("uuid", converted)
         self.assertEqual(converted["version"], [1, 0, 2])
         self.assertEqual(converted["created_at"], str(dt))
         self.assertEqual(converted["url"], "https://xxx")
         self.assertIsInstance(converted["dependencies"], list)
         self.assertEqual(len(converted["dependencies"]), 1)
         dep = converted["dependencies"][0]
+        self.assertEqual(dep["model"], "xxx")
         self.assertEqual(dep["version"], [1, 0, 3])
         self.assertEqual(dep["created_at"], str(dt))
         self.assertEqual(dep["uuid"], "?")
