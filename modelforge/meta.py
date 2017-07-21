@@ -26,10 +26,11 @@ def generate_meta(name: str, version: tuple, *deps) -> dict:
 
 def _extract_index_meta_dependency(meta):
     return {
-        "version": meta["version"],
+        "model": meta["model"],
         "uuid": meta["uuid"],
         "dependencies": [_extract_index_meta_dependency(m)
                          for m in meta["dependencies"]],
+        "version": meta["version"],
         "created_at": str(meta["created_at"]),
     }
 
@@ -43,6 +44,7 @@ def extract_index_meta(meta: dict, model_url: str) -> dict:
     :return: converted dict.
     """
     result = _extract_index_meta_dependency(meta)
+    del result["model"]
     del result["uuid"]
     result["url"] = model_url
     return result
