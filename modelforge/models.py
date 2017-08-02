@@ -25,24 +25,24 @@ def register_model(cls: Type[Model]):
 
 class GenericModel(Model):
     """
-    Compatible with any model. Allows to load and dump it.
+    Compatible with any model: loads it in :func:`__init__`.
     """
     def __init__(self, source: Union[str, "Model"]=None, dummy=False,
                  cache_dir: str=None, backend: StorageBackend=None,
                  log_level: int=logging.DEBUG):
+        super(GenericModel, self).__init__(log_level=log_level)
         self._models = {m.NAME: m for m in __models__} if not dummy else {}
-        super(GenericModel, self).__init__(
-            source=source, cache_dir=cache_dir, backend=backend, log_level=log_level)
+        self.load(source=source, cache_dir=cache_dir, backend=backend)
 
-    def load(self, tree):
+    def _load_tree(self, tree):
         model = self._models.get(self.meta["model"])
-        if model is not None:
-            # we overwrite our class - shady, but works
-            self.__class__ = model
-            log_level = self._log.level
-            self._log = logging.getLogger(self.NAME)
-            self._log.setLevel(log_level)
-            self.load(tree)
-
-    def dump(self):
-        return ""
+        if model is None:
+            if self._models:
+                raise ValueError("Unknown model: %s" % self.meta["model"])
+            return
+        # we overwrite our class - shady, but works
+        self.__class__ = model
+        log_level = self._log.level
+        self._log = logging.getLogger(self.NAME)
+        self._log.setLevel(log_level)
+        self._load_tree(tree)

@@ -13,6 +13,7 @@ import numpy
 import scipy.sparse
 
 import modelforge.configuration as config
+from modelforge.meta import generate_meta
 from modelforge.storage_backend import StorageBackend
 
 ARRAY_COMPRESSION = "zlib"
@@ -28,30 +29,36 @@ class Model:
     DEFAULT_NAME = "default"  #: When no uuid is specified, this is used.
     DEFAULT_FILE_EXT = ".asdf"  #: File extension of the model.
 
-    def __init__(self, source: Union[str, "Model"]=None,
-                 cache_dir: str=None, backend: StorageBackend=None,
-                 log_level: int=logging.DEBUG):
+    def __init__(self, **kwargs):
+        """
+        Initializes a new Model instance.
+
+        :param kwargs: Everything is ignored except ``log_level``.
+        """
+        self._log = logging.getLogger(self.NAME)
+        self._log.setLevel(kwargs.get("log_level", logging.DEBUG))
+        self._source = None
+        self._meta = generate_meta(self.NAME, tuple())
+
+    def load(self, source: Union[str, "Model"]=None,
+             cache_dir: str=None, backend: StorageBackend=None) -> "Model":
         """
         Initializes a new Model instance.
 
         :param source: UUID, file system path or an URL; None means auto.
         :param cache_dir: The directory where to store the downloaded model.
         :param backend: Remote storage backend to use if ``source`` is a UUID or a URL.
-        :param log_level: The logging level applied to this instance.
         """
         if isinstance(source, Model):
             if not isinstance(source, type(self)):
                 raise TypeError("Incompatible model instance: %s <> %s" %
                                 (type(source), type(self)))
             self.__dict__ = source.__dict__
-            return
+            return self
 
         if backend is not None and not isinstance(backend, StorageBackend):
             raise TypeError("backend must be an instance of "
                             "modelforge.storage_backend.StorageBackend")
-
-        self._log = logging.getLogger(self.NAME)
-        self._log.setLevel(log_level)
         self._source = source
         if cache_dir is None:
             if self.NAME is not None:
@@ -102,10 +109,11 @@ class Model:
                     raise ValueError(
                         "The supplied model is of the wrong type: needed "
                         "%s, got %s." % (self.NAME, self._meta["model"]))
-                self.load(tree)
+                self._load_tree(tree)
         finally:
             if self.NAME is None:
                 shutil.rmtree(cache_dir)
+        return self
 
     @property
     def meta(self):
@@ -158,19 +166,29 @@ class Model:
                 return d
         raise KeyError("%s not found in %s." % (name, deps))
 
-    def load(self, tree: dict) -> None:
+    def dump(self) -> str:
+        """
+        Returns the string with the brief information about the model.
+        Should not include any metadata.
+        """
+        raise NotImplementedError()
+
+    def save(self, output, deps: Union[None, list]=None) -> None:
+        """
+        Serializes the model on disk.
+
+        :param output: path to the file.
+        :param deps: the list of dependencies.
+        :return: None
+        """
+        raise NotImplementedError()
+
+    def _load_tree(self, tree: dict) -> None:
         """
         Attaches the needed data from the tree.
 
         :param tree: asdf file tree.
         :return: None
-        """
-        raise NotImplementedError()
-
-    def dump(self) -> str:
-        """
-        Returns the string with the brief information about the model.
-        Should not include any metadata.
         """
         raise NotImplementedError()
 

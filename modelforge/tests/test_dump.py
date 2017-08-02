@@ -14,7 +14,7 @@ from modelforge.tests.fake_requests import FakeRequests
 class TestModel(Model):
     NAME = "docfreq"
 
-    def load(self, tree):
+    def _load_tree(self, tree):
         self.docs = tree["docs"]
 
     def dump(self):
