@@ -20,7 +20,7 @@ from modelforge.tests.test_dump import TestModel
 
 
 class Model1(Model):
-    def load(self, tree):
+    def _load_tree(self, tree):
         pass
 
     def dump(self):
@@ -30,7 +30,7 @@ class Model1(Model):
 class Model2(Model):
     NAME = "model2"
 
-    def load(self, tree):
+    def _load_tree(self, tree):
         pass
 
     def dump(self):
@@ -38,7 +38,7 @@ class Model2(Model):
 
 
 class Model3(Model):
-    def load(self, tree):
+    def _load_tree(self, tree):
         pass
 
 
@@ -101,16 +101,16 @@ class ModelTests(unittest.TestCase):
         self._validate_meta(model)
 
     def test_init_with_model(self):
-        model1 = Model1(source=get_path(self.DOCFREQ_PATH))
+        model1 = Model1().load(source=get_path(self.DOCFREQ_PATH))
         # init with correct model
         Model1(source=model1)
         # init with wrong model
         with self.assertRaises(TypeError):
-            Model2(source=model1)
+            Model2().load(source=model1)
 
     def test_repr_str(self):
         path = get_path(self.DOCFREQ_PATH)
-        model = Model1(source=path)
+        model = Model1().load(source=path)
         repr1 = repr(model)
         try:
             self.assertIn("test_model.py].Model1(source=%s)" % path, repr1)
@@ -120,15 +120,15 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(len(str1.split("\n")), 6)
         self.assertIn("\nmodel1", str1)
         self.assertIn("'uuid': 'f64bacd4-67fb-4c64-8382-399a8e7db52a'", str1)
-        model = Model3(source=path)
+        model = Model3().load(source=path)
         str2 = str(model)
         self.assertEqual(len(str2.split("\n")), 5)
-        model = TestModel(source=path)
+        model = TestModel().load(source=path)
         repr2 = repr(model)
         self.assertEqual("modelforge.tests.test_dump.TestModel(source=%s)" % path, repr2)
 
     def test_get_dependency(self):
-        model = Model1(source=get_path(self.DOCFREQ_PATH))
+        model = Model1().load(source=get_path(self.DOCFREQ_PATH))
         model.meta["dependencies"] = [{"model": "xxx", "uuid": "yyy"},
                                       {"model": "zzz", "uuid": None}]
         self.assertEqual(model.get_dependency("xxx")["uuid"], "yyy")
