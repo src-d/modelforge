@@ -127,6 +127,8 @@ class Model:
             dump = self.dump()
         except NotImplementedError:
             dump = ""
+        except AttributeError:
+            return repr(self)
         if dump:
             dump = "\n" + dump
         return "%s%s" % (pformat(self.meta), dump)

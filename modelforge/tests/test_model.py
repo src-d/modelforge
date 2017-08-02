@@ -42,6 +42,11 @@ class Model3(Model):
         pass
 
 
+class Model4(Model):
+    def dump(self):
+        return str(self.xxx)
+
+
 def get_path(name):
     return os.path.join(os.path.dirname(__file__), name)
 
@@ -142,6 +147,13 @@ class ModelTests(unittest.TestCase):
             'model': 'docfreq',
             'uuid': 'f64bacd4-67fb-4c64-8382-399a8e7db52a',
             'version': [1, 0, 0]})
+
+    def test_uninitialized_dump(self):
+        text = str(Model4())
+        try:
+            self.assertIn("test_model.py].Model4(source=None)", text)
+        except AssertionError:
+            self.assertEqual("modelforge.tests.test_model.Model4(source=None)", text)
 
 
 class SerializationTests(unittest.TestCase):
