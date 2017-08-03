@@ -17,6 +17,16 @@ class MetaTests(unittest.TestCase):
         self.assertEqual(meta["version"], (1, 0, 1))
         self.assertIsInstance(meta["created_at"], datetime)
 
+    def test_generate_meta_deps(self):
+        fake = {"surprise": 'me'}
+        meta = generate_meta("first", (1, 0, 1), fake)
+        self.assertIsInstance(meta, dict)
+        self.assertEqual(meta["model"], "first")
+        uuid.UUID(meta["uuid"])
+        self.assertEqual(meta["dependencies"], [{"surprise": "me"}])
+        self.assertEqual(meta["version"], (1, 0, 1))
+        self.assertIsInstance(meta["created_at"], datetime)
+
     def test_extract_index_meta(self):
         dt = datetime.now()
         meta = {
