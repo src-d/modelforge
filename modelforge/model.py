@@ -141,7 +141,7 @@ class Model:
                 module_name = module.__spec__.name
             else:
                 module_name = "[%s]" % module.__file__
-        return "%s.%s(source=%s)" % (module_name, type(self).__name__, self._source)
+        return "%s.%s().load(source=%s)" % (module_name, type(self).__name__, self._source)
 
     def __getstate__(self):
         """
