@@ -12,13 +12,14 @@ def generate_meta(name: str, version: tuple, *deps) -> dict:
 
     :param name: The model's name.
     :param version: The caller's version - used to check the format match.
-    :param deps: The list of metas this model depends on.
+    :param deps: The list of metas this model depends on. Can be either models or dicts.
     :return: dict with the metadata.
     """
     return {
         "model": name,
         "uuid": str(uuid.uuid4()),
-        "dependencies": [d.meta for d in deps],
+        "dependencies": [(d.meta if not isinstance(d, dict) else d)
+                         for d in deps],
         "version": version,
         "created_at": datetime.now()
     }
