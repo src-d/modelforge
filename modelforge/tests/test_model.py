@@ -118,9 +118,9 @@ class ModelTests(unittest.TestCase):
         model = Model1().load(source=path)
         repr1 = repr(model)
         try:
-            self.assertIn("test_model.py].Model1(source=%s)" % path, repr1)
+            self.assertIn("test_model.py].Model1().load(source=%s)" % path, repr1)
         except AssertionError:
-            self.assertEqual("modelforge.tests.test_model.Model1(source=%s)" % path, repr1)
+            self.assertEqual("modelforge.tests.test_model.Model1().load(source=%s)" % path, repr1)
         str1 = str(model)
         self.assertEqual(len(str1.split("\n")), 6)
         self.assertIn("\nmodel1", str1)
@@ -130,7 +130,7 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(len(str2.split("\n")), 5)
         model = TestModel().load(source=path)
         repr2 = repr(model)
-        self.assertEqual("modelforge.tests.test_dump.TestModel(source=%s)" % path, repr2)
+        self.assertEqual("modelforge.tests.test_dump.TestModel().load(source=%s)" % path, repr2)
 
     def test_get_dependency(self):
         model = Model1().load(source=get_path(self.DOCFREQ_PATH))
@@ -151,9 +151,9 @@ class ModelTests(unittest.TestCase):
     def test_uninitialized_dump(self):
         text = str(Model4())
         try:
-            self.assertIn("test_model.py].Model4(source=None)", text)
+            self.assertIn("test_model.py].Model4().load(source=None)", text)
         except AssertionError:
-            self.assertEqual("modelforge.tests.test_model.Model4(source=None)", text)
+            self.assertEqual("modelforge.tests.test_model.Model4().load(source=None)", text)
 
 
 class SerializationTests(unittest.TestCase):
