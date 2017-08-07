@@ -105,10 +105,18 @@ class Model:
             with asdf.open(source) as model:
                 tree = model.tree
                 self._meta = tree["meta"]
-                if self.NAME != self._meta["model"] and self.NAME is not None:
-                    raise ValueError(
-                        "The supplied model is of the wrong type: needed "
-                        "%s, got %s." % (self.NAME, self._meta["model"]))
+                if self.NAME is not None:
+                    meta_name = self._meta["model"]
+                    matched = False
+                    needed = set()
+                    for base in type(self).mro():
+                        if issubclass(base, Model):
+                            needed.add(base.NAME)
+                            matched |= base.NAME == meta_name
+                    if not matched:
+                        raise ValueError(
+                            "The supplied model is of the wrong type: needed "
+                            "%s, got %s." % (needed, meta_name))
                 self._load_tree(tree)
         finally:
             if self.NAME is None:
