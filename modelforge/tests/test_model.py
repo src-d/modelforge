@@ -47,6 +47,21 @@ class Model4(Model):
         return str(self.xxx)
 
 
+class ModelBase1(Model):
+    NAME = "base1"
+
+
+class ModelBase2(Model):
+    NAME = "docfreq"
+
+
+class Model5(ModelBase2):
+    NAME = "xxx"
+
+    def _load_tree(self, tree):
+        pass
+
+
 def get_path(name):
     return os.path.join(os.path.dirname(__file__), name)
 
@@ -154,6 +169,11 @@ class ModelTests(unittest.TestCase):
             self.assertIn("test_model.py].Model4().load(source=None)", text)
         except AssertionError:
             self.assertEqual("modelforge.tests.test_model.Model4().load(source=None)", text)
+
+    def test_name_check(self):
+        Model5().load(source=get_path(self.DOCFREQ_PATH))
+        with self.assertRaises(ValueError):
+            Model2().load(source=get_path(self.DOCFREQ_PATH))
 
 
 class SerializationTests(unittest.TestCase):
