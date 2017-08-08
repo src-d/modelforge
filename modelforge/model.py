@@ -208,11 +208,25 @@ def merge_strings(list_of_strings):
     Packs the list of strings into two arrays: the concatenated chars and the
     individual string lengths. :func:`split_strings()` does the inverse.
 
-    :param list_of_strings: The :class:`list` of :class:`str`-s to pack.
+    :param list_of_strings: The :class:`tuple` or :class:`list` of :class:`str`-s \
+                            or :class:`bytes`-s to pack.
     :return: :class:`dict` with "strings" and "lengths" \
              :class:`numpy.ndarray`-s.
     """
-    strings = numpy.array(["".join(list_of_strings).encode("utf-8")])
+    if not isinstance(list_of_strings, (tuple, list)):
+        raise TypeError("list_of_strings must be either a tuple or a list")
+    with_str = not isinstance(list_of_strings[0], bytes)
+    if with_str:
+        if not isinstance(list_of_strings[0], str):
+            raise TypeError("list_of_strings must contain either bytes or strings")
+        strings = numpy.array(["".join(list_of_strings).encode("utf-8")])
+    else:
+        merged = bytearray(sum(len(s) for s in list_of_strings))
+        offset = 0
+        for s in list_of_strings:
+            merged[offset:offset + len(s)] = s
+            offset += len(s)
+        strings = numpy.frombuffer(merged, dtype="S%d" % len(merged))
     max_len = 0
     lengths = []
     for s in list_of_strings:
@@ -231,7 +245,7 @@ def merge_strings(list_of_strings):
         raise ValueError("There are very long strings (max length %d)."
                          % max_len)
     lengths = numpy.array(lengths, dtype=dtype)
-    return {"strings": strings, "lengths": lengths}
+    return {"strings": strings, "lengths": lengths, "str": with_str}
 
 
 def split_strings(subtree):
@@ -240,10 +254,12 @@ def split_strings(subtree):
     and lengths. Opposite to :func:`merge_strings()`.
 
     :param subtree: The dict with "strings" and "lengths".
-    :return: :class:`list` of :class:`str`-s.
+    :return: :class:`list` of :class:`str`-s or :class:`bytes`.
     """
     result = []
-    strings = subtree["strings"][0].decode("utf-8")
+    strings = subtree["strings"][0]
+    if subtree.get("str", True):
+        strings = strings.decode("utf-8")
     lengths = subtree["lengths"]
     offset = 0
     for i, l in enumerate(lengths):

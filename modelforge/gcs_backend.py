@@ -8,7 +8,6 @@ import time
 import uuid
 
 from clint.textui import progress
-from google.cloud.storage import Client
 import requests
 
 from modelforge.progress_bar import progress_bar
@@ -100,6 +99,11 @@ class GCSBackend(StorageBackend):
         """
         log = self._log
         log.info("Locking the bucket...")
+
+        # Client should be imported here because grpc starts threads during import
+        # and if you call fork after that, a child process will be hang during exit
+        from google.cloud.storage import Client
+
         if self.credentials:
             client = Client.from_service_account_json(self.credentials)
         else:
