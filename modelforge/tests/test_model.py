@@ -201,6 +201,36 @@ class SerializationTests(unittest.TestCase):
         })
         self.assertEqual(strings, ["a", "bc", "def"])
 
+    def test_invalid_merge_strings(self):
+        with self.assertRaises(TypeError):
+            merge_strings("abcd")
+        with self.assertRaises(TypeError):
+            merge_strings([0, 1, 2, 3])
+
+    def test_merge_bytes(self):
+        strings = [b"a", b"bc", b"def"]
+        merged = merge_strings(strings)
+        self.assertIsInstance(merged, dict)
+        self.assertIn("strings", merged)
+        self.assertIn("lengths", merged)
+        self.assertEqual(merged["str"], False)
+        self.assertIsInstance(merged["strings"], numpy.ndarray)
+        self.assertEqual(merged["strings"].shape, (1,))
+        self.assertEqual(merged["strings"][0], b"abcdef")
+        self.assertIsInstance(merged["lengths"], numpy.ndarray)
+        self.assertEqual(merged["lengths"].shape, (3,))
+        self.assertEqual(merged["lengths"][0], 1)
+        self.assertEqual(merged["lengths"][1], 2)
+        self.assertEqual(merged["lengths"][2], 3)
+
+    def test_split_bytes(self):
+        strings = split_strings({
+            "strings": numpy.array([b"abcdef"]),
+            "lengths": numpy.array([1, 2, 3]),
+            "str": False
+        })
+        self.assertEqual(strings, [b"a", b"bc", b"def"])
+
     def test_disassemble_sparse_matrix(self):
         arr = numpy.zeros((10, 10), dtype=numpy.float32)
         numpy.random.seed(0)
