@@ -307,7 +307,7 @@ def assemble_sparse_matrix(subtree):
     return matrix
 
 
-def write_model(meta: dict, tree: dict, output: str) -> None:
+def write_model(meta: dict, tree: dict, output: str, file_mode: int=0o666) -> None:
     """
     Writes the model to disk.
 
@@ -315,8 +315,10 @@ def write_model(meta: dict, tree: dict, output: str) -> None:
                  :func:`modelforge.meta.generate_meta`.
     :param tree: The data dict.
     :param output: The output file path.
+    :param file_mode: The model file's permission.
     :return: None
     """
     final_tree = {"meta": meta}
     final_tree.update(tree)
     asdf.AsdfFile(final_tree).write_to(output, all_array_compression=ARRAY_COMPRESSION)
+    os.chmod(output, file_mode)

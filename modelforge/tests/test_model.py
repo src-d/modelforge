@@ -280,6 +280,7 @@ class SerializationTests(unittest.TestCase):
             with asdf.open(tmp.name) as f:
                 self.assertEqual(f.tree["meta"]["model"], "test")
                 self.assertEqual(f.tree["xxx"], 100500)
+                self.assertEqual(oct(os.stat(tmp.name).st_mode)[-3:], "666")
 
 
 if __name__ == "__main__":
