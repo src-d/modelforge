@@ -1,7 +1,6 @@
 import logging
-from typing import Type, Union, Iterable
+from typing import Type, Union
 
-from modelforge import Model
 from modelforge.model import Model
 from modelforge.storage_backend import StorageBackend
 
