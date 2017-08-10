@@ -21,7 +21,8 @@ ARRAY_COMPRESSION = "zlib"
 
 class Model:
     """
-    Base class for all the models.
+    Base class for all the models. All models should be backwards compatible:
+    base class should be able to load the file generated from an inheritor.
     """
 
     NAME = None  #: Name of the model. Used as the logging domain, too.
@@ -107,16 +108,16 @@ class Model:
                 self._meta = tree["meta"]
                 if self.NAME is not None:
                     meta_name = self._meta["model"]
-                    matched = False
-                    needed = set()
-                    for base in type(self).mro():
-                        if issubclass(base, Model):
-                            needed.add(base.NAME)
-                            matched |= base.NAME == meta_name
+                    matched = self.NAME == meta_name
                     if not matched:
-                        raise ValueError(
-                            "The supplied model is of the wrong type: needed "
-                            "%s, got %s." % (needed, meta_name))
+                        needed = {self.NAME}
+                        for child in type(self).__subclasses__():
+                            needed.add(child.NAME)
+                            matched |= child.NAME == meta_name
+                        if not matched:
+                            raise ValueError(
+                                "The supplied model is of the wrong type: needed "
+                                "%s, got %s." % (needed, meta_name))
                 self._load_tree(tree)
         finally:
             if self.NAME is None:
@@ -149,7 +150,9 @@ class Model:
                 module_name = module.__spec__.name
             else:
                 module_name = "[%s]" % module.__file__
-        return "%s.%s().load(source=%s)" % (module_name, type(self).__name__, self._source)
+        return "%s.%s().load(source=%s)" % (
+            module_name, type(self).__name__,
+            '"%s"' % self._source if self._source is not None else None)
 
     def __getstate__(self):
         """

@@ -47,15 +47,21 @@ class Model4(Model):
         return str(self.xxx)
 
 
-class ModelBase1(Model):
-    NAME = "base1"
+class Model5(Model):
+    NAME = "aux"
+
+    def _load_tree(self, tree):
+        pass
 
 
-class ModelBase2(Model):
+class Model6(Model5):
     NAME = "docfreq"
 
+    def _load_tree(self, tree):
+        pass
 
-class Model5(ModelBase2):
+
+class Model7(Model6):
     NAME = "xxx"
 
     def _load_tree(self, tree):
@@ -133,9 +139,10 @@ class ModelTests(unittest.TestCase):
         model = Model1().load(source=path)
         repr1 = repr(model)
         try:
-            self.assertIn("test_model.py].Model1().load(source=%s)" % path, repr1)
+            self.assertIn("test_model.py].Model1().load(source=\"%s\")" % path, repr1)
         except AssertionError:
-            self.assertEqual("modelforge.tests.test_model.Model1().load(source=%s)" % path, repr1)
+            self.assertEqual("modelforge.tests.test_model.Model1().load(source=\"%s\")"
+                             % path, repr1)
         str1 = str(model)
         self.assertEqual(len(str1.split("\n")), 6)
         self.assertIn("\nmodel1", str1)
@@ -145,7 +152,8 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(len(str2.split("\n")), 5)
         model = TestModel().load(source=path)
         repr2 = repr(model)
-        self.assertEqual("modelforge.tests.test_dump.TestModel().load(source=%s)" % path, repr2)
+        self.assertEqual("modelforge.tests.test_dump.TestModel().load(source=\"%s\")"
+                         % path, repr2)
 
     def test_get_dependency(self):
         model = Model1().load(source=get_path(self.DOCFREQ_PATH))
@@ -172,8 +180,9 @@ class ModelTests(unittest.TestCase):
 
     def test_name_check(self):
         Model5().load(source=get_path(self.DOCFREQ_PATH))
+        Model6().load(source=get_path(self.DOCFREQ_PATH))
         with self.assertRaises(ValueError):
-            Model2().load(source=get_path(self.DOCFREQ_PATH))
+            Model7().load(source=get_path(self.DOCFREQ_PATH))
 
 
 class SerializationTests(unittest.TestCase):
