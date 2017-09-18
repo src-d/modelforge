@@ -35,15 +35,15 @@ def publish_model(args: argparse.Namespace, backend: StorageBackend, log: loggin
     path = os.path.abspath(args.model)
     try:
         model = GenericModel(source=path, dummy=True)
-    except ValueError:
-        log.critical('"model" must be a path')
+    except ValueError as e:
+        log.critical('"model" must be a path: %s', e)
         return 1
     except Exception as e:
         log.critical("Failed to load the model: %s: %s" % (type(e).__name__, e))
         return 1
     meta = model.meta
-    model_url = backend.upload_model(path, meta, args.force)
     with backend.lock():
+        model_url = backend.upload_model(path, meta, args.force)
         log.info("Uploaded as %s", model_url)
         log.info("Updating the models index...")
         index = backend.fetch_index()

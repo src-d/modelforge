@@ -5,7 +5,6 @@ import logging
 import math
 import os
 import time
-import uuid
 
 from clint.textui import progress
 import requests
@@ -14,7 +13,6 @@ from modelforge.progress_bar import progress_bar
 from modelforge.storage_backend import StorageBackend, TransactionRequiredError
 
 INDEX_FILE = "index.json"  #: Models repository index file name.
-DEFAULT_GCS_BUCKET = "datasets.sourced.tech"  #: GCS bucket where the models are stored.
 
 
 class FileReadTracker:
@@ -30,6 +28,8 @@ class FileReadTracker:
         self._enabled = logger.isEnabledFor(logging.INFO)
         if self._enabled:
             self._progress = progress.Bar(expected_size=self._size)
+        else:
+            logger.debug("Progress indication is not enabled")
         file.seek(0)
 
     @property
