@@ -15,40 +15,34 @@ from modelforge.storage_backend import StorageBackend, TransactionRequiredError
 INDEX_FILE = "index.json"  #: Models repository index file name.
 
 
-class FileReadTracker:
+class Tracker:
     """
-    Wrapper around Python fileobj which records the file position and updates
-    the console progressbar.
+    Wrapper around a bytes buffer which follows the file position and updates
+    the console progressbar mimicking a file object.
     """
-    def __init__(self, file, logger):
-        self._file = file
-        self._position = 0
-        file.seek(0, 2)
-        self._size = file.tell()
+    def __init__(self, data, logger):
+        self._file = io.BytesIO(data)
+        self._size = len(data)
         self._enabled = logger.isEnabledFor(logging.INFO)
         if self._enabled:
             self._progress = progress.Bar(expected_size=self._size)
         else:
             logger.debug("Progress indication is not enabled")
-        file.seek(0)
-
-    @property
-    def size(self):
-        return self._size
 
     def read(self, size=None):
+        pos_before = self._file.tell()
         result = self._file.read(size)
-        self._position += len(result)
         if self._enabled:
-            self._progress.show(self._position)
+            pos = self._file.tell()
+            if pos != pos_before:
+                if pos < self._size:
+                    self._progress.show(pos)
+                else:
+                    self._progress.done()
         return result
 
-    def tell(self):
-        return self._position
-
-    def done(self):
-        if self._enabled:
-            self._progress.done()
+    def __len__(self):
+        return self._size
 
 
 class GCSBackend(StorageBackend):
@@ -63,6 +57,7 @@ class GCSBackend(StorageBackend):
         :param bucket: The name of the Google Cloud Storage bucket to use.
         :param log_level: The logging level of this instance.
         """
+        super().__init__()
         if not isinstance(bucket, str):
             raise TypeError("bucket must be a str")
         self._bucket_name = bucket
@@ -86,7 +81,8 @@ class GCSBackend(StorageBackend):
 
     def fetch_index(self) -> dict:
         buffer = io.BytesIO()
-        self._fetch("https://storage.googleapis.com/%s/%s" % (self.bucket_name, self.INDEX_FILE),
+        self._fetch("https://storage.googleapis.com/%s/%s?ignoreCache=1" %
+                    (self.bucket_name, self.INDEX_FILE),
                     buffer)
         return json.loads(buffer.getvalue().decode("utf8"))
 
@@ -135,14 +131,26 @@ class GCSBackend(StorageBackend):
             self._log.error("Model %s already exists, aborted.", meta["uuid"])
             return 1
         self._log.info("Uploading %s from %s...", meta["model"], os.path.abspath(path))
+
+        def tracker(data):
+            return Tracker(data, self._log)
+
+        make_transport = blob._make_transport
+
+        def make_transport_with_progress(client):
+            transport = make_transport(client)
+            request = transport.request
+
+            def request_with_progress(method, url, data=None, headers=None, **kwargs):
+                return request(method, url, data=tracker(data), headers=headers, **kwargs)
+
+            transport.request = request_with_progress
+            return transport
+
+        blob._make_transport = make_transport_with_progress
+
         with open(path, "rb") as fin:
-            tracker = FileReadTracker(fin, self._log)
-            try:
-                blob.upload_from_file(
-                    tracker, content_type="application/x-yaml",
-                    size=tracker.size)
-            finally:
-                tracker.done()
+            blob.upload_from_file(fin, content_type="application/x-yaml")
         blob.make_public()
         return blob.public_url
 
@@ -151,6 +159,7 @@ class GCSBackend(StorageBackend):
         if bucket is None:
             raise TransactionRequiredError
         blob = bucket.blob(self.INDEX_FILE)
+        blob.cache_control = "no-cache"
         blob.upload_from_string(json.dumps(index, indent=4, sort_keys=True))
         blob.make_public()
 

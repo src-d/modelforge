@@ -39,7 +39,7 @@ class FakeBackend(StorageBackend):
         yield None
 
     def upload_model(self, path: str, meta: dict, force: bool) -> str:
-        assert not FakeBackend.called_transaction
+        assert FakeBackend.called_transaction
         FakeBackend.uploaded_model = path, meta, force
         return "https:/yyy"
 
