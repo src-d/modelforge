@@ -84,7 +84,7 @@ class ModelTests(unittest.TestCase):
 
     def test_id(self):
         def route(url):
-            if url.endswith(GCSBackend.INDEX_FILE):
+            if GCSBackend.INDEX_FILE in url:
                 return '{"models": {"docfreq": {' \
                        '"f64bacd4-67fb-4c64-8382-399a8e7db52a": ' \
                        '{"url": "https://xxx"}}}}'.encode()
@@ -112,7 +112,7 @@ class ModelTests(unittest.TestCase):
             NAME = "docfreq"
 
         def route(url):
-            if url.endswith(GCSBackend.INDEX_FILE):
+            if GCSBackend.INDEX_FILE in url:
                 return '{"models": {"docfreq": {' \
                        '"f64bacd4-67fb-4c64-8382-399a8e7db52a": ' \
                        '{"url": "https://xxx"}, ' \

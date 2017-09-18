@@ -38,7 +38,7 @@ class DumpTests(unittest.TestCase):
 
     def test_docfreq_id(self):
         def route(url):
-            if url.endswith(gcs_backend.GCSBackend.INDEX_FILE):
+            if gcs_backend.GCSBackend.INDEX_FILE in url:
                 return '{"models": {"docfreq": {' \
                        '"f64bacd4-67fb-4c64-8382-399a8e7db52a": ' \
                        '{"url": "https://xxx"}}}}'.encode()
