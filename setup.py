@@ -12,7 +12,7 @@ setup(
     description='APIs and tools to work with abstract "models" - files '
                 'with numpy arrays and metadata. It is possible to publish '
                 'models, list them. There is a built-in cache. Storage has backends.',
-    version="0.2.8-alpha",
+    version="0.2.9-alpha",
     license="Apache 2.0",
     author="source{d}",
     author_email="machine-learning@sourced.tech",
@@ -28,6 +28,9 @@ setup(
                       "clint>=0.5.0",
                       "google-cloud-storage>=1.0,<2.0",
                       "python-dateutil"] + typing,
+    entry_points={
+        "console_scripts": ["modelforge=modelforge.__main__:main"],
+    },
     package_data={"": ["LICENSE", "README.md"]},
     classifiers=[
         "Development Status :: 3 - Alpha",

@@ -1,6 +1,4 @@
-## modelforge
-
-[![Build Status](https://travis-ci.org/src-d/modelforge.svg)](https://travis-ci.org/src-d/modelforge) [![codecov](https://codecov.io/github/src-d/modelforge/coverage.svg?branch=develop)](https://codecov.io/gh/src-d/modelforge) [![PyPI](https://img.shields.io/pypi/v/modelforge.svg)](https://pypi.python.org/pypi/modelforge)
+# Modelforge [![Build Status](https://travis-ci.org/src-d/modelforge.svg)](https://travis-ci.org/src-d/modelforge) [![codecov](https://codecov.io/github/src-d/modelforge/coverage.svg?branch=develop)](https://codecov.io/gh/src-d/modelforge) [![PyPI](https://img.shields.io/pypi/v/modelforge.svg)](https://pypi.python.org/pypi/modelforge)
 
 This project is the foundation for sharing machine learning models. It helps to maintain the
 *registry*, the remote storage where all model files are stored in a structured, cataloged way.
@@ -52,6 +50,13 @@ python3 -m modelforge --help
 
 It is possible to specify the default backend, backend's options and the **vendor**. Create
 `modelforgecfg.py` anywhere in your project tree.
+
+#### Docker image
+
+```
+docker build -t srcd/modelforge .
+docker run -it --rm srcd/modelforge --help
+```
 
 ## Contributions
 [![PEP8](https://img.shields.io/badge/code%20style-pep8-orange.svg)](https://www.python.org/dev/peps/pep-0008/)
