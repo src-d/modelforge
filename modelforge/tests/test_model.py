@@ -159,7 +159,7 @@ class ModelTests(unittest.TestCase):
         model = Model1().load(source=get_path(self.DOCFREQ_PATH))
         model.meta["dependencies"] = [{"model": "xxx", "uuid": "yyy"},
                                       {"model": "zzz", "uuid": None}]
-        self.assertEqual(model.get_dependency("xxx")["uuid"], "yyy")
+        self.assertEqual(model.dep("xxx")["uuid"], "yyy")
 
     def _validate_meta(self, model):
         meta = model.meta
@@ -183,6 +183,25 @@ class ModelTests(unittest.TestCase):
         Model6().load(source=get_path(self.DOCFREQ_PATH))
         with self.assertRaises(ValueError):
             Model7().load(source=get_path(self.DOCFREQ_PATH))
+
+    def test_derive(self):
+        path = get_path(self.DOCFREQ_PATH)
+        model = Model1().load(source=path)
+        m2 = model.derive()
+        self.assertEqual(m2.version, [1, 0, 1])
+        model.derive((2, 0, 0))
+        self.assertEqual(m2.version, [2, 0, 0])
+        with self.assertRaises(ValueError):
+            model.derive("1.2.3")
+
+    def test_props(self):
+        path = get_path(self.DOCFREQ_PATH)
+        model = Model1().load(source=path)
+        for n in ("description", "references", "extra", "parent", "license"):
+            with self.assertRaises(KeyError):
+                getattr(model, n)
+        self.assertEqual(model.version, [1, 0, 0])
+        self.assertEqual(model.created_at, datetime.datetime(2017, 6, 19, 9, 59, 14, 766638))
 
 
 class SerializationTests(unittest.TestCase):

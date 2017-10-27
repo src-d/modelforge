@@ -12,7 +12,7 @@ setup(
     description='APIs and tools to work with abstract "models" - files '
                 'with numpy arrays and metadata. It is possible to publish '
                 'models, list them. There is a built-in cache. Storage has backends.',
-    version="0.2.9-alpha",
+    version="0.3.0-alpha",
     license="Apache 2.0",
     author="source{d}",
     author_email="machine-learning@sourced.tech",
@@ -21,7 +21,7 @@ setup(
     packages=find_packages(exclude=("modelforge.tests",)),
     keywords=["model", "asdf", "gcs", "google cloud storage",
               "machine learning"],
-    install_requires=["asdf>=1.2,<2.0",
+    install_requires=["asdf>=1.3,<2.0",
                       "lz4>=0.10.1",
                       "numpy>=1.12,<2.0",
                       "scipy>=0.17,<1.0",
