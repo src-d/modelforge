@@ -16,7 +16,7 @@ import modelforge.configuration as config
 from modelforge.meta import generate_meta
 from modelforge.storage_backend import StorageBackend
 
-ARRAY_COMPRESSION = "zlib"
+ARRAY_COMPRESSION = "lz4"
 
 
 class Model:
@@ -127,9 +127,47 @@ class Model:
     @property
     def meta(self):
         """
-        Metadata dictionary: when was created, uuid, engine version, etc.
+        Metadata dictionary: when was created, uuid, version, etc.
         """
         return self._meta
+
+    def metaprop(name):
+        def get(self):
+            return self.meta[name]
+
+        def set(self, value):
+            self.meta[name] = value
+
+        return property(get, set)
+
+    description = metaprop("description")
+    references = metaprop("references")
+    extra = metaprop("extra")
+    created_at = metaprop("created_at")
+    version = metaprop("version")
+    parent = metaprop("parent")
+    license = metaprop("license")
+
+    del metaprop
+
+    def derive(self, new_version: Union[tuple, list]=None):
+        """
+        Inherits the new model from the current one. This is used for versioning.
+        This operation is in-place.
+        :param new_version: The version of the new model.
+        :return: The derived model - self.
+        """
+        meta = self.meta
+        if new_version is None:
+            new_version = meta["version"]
+            new_version[-1] += 1
+        if not isinstance(new_version, (tuple, list)):
+            raise ValueError("new_version must be either a list or a tuple, got %s"
+                             % type(new_version))
+        meta["version"] = list(new_version)
+        meta["parent"] = meta["uuid"]
+        meta["uuid"] = str(uuid.uuid4())
+        return self
 
     def __str__(self):
         try:
@@ -163,6 +201,9 @@ class Model:
         return state
 
     def __setstate__(self, state):
+        """
+        Fixes unpickling.
+        """
         log_level = state["_log"]
         self.__dict__.update(state)
         self._log = logging.getLogger(self.NAME)
@@ -172,7 +213,12 @@ class Model:
     def cache_dir():
         return os.path.join("~", "." + config.VENDOR)
 
-    def get_dependency(self, name):
+    def dep(self, name):
+        """
+        Returns the uuid of the dependency identified with "name".
+        :param name:
+        :return:
+        """
         deps = self.meta["dependencies"]
         for d in deps:
             if d["model"] == name:
