@@ -9,7 +9,7 @@ import numpy
 from scipy.sparse import csr_matrix
 
 import modelforge.gcs_backend
-from modelforge import generate_meta
+from modelforge.meta import generate_meta
 from modelforge.backends import create_backend
 from modelforge.gcs_backend import GCSBackend
 from modelforge.model import merge_strings, split_strings, \
@@ -155,11 +155,11 @@ class ModelTests(unittest.TestCase):
         self.assertEqual("modelforge.tests.test_dump.TestModel().load(source=\"%s\")"
                          % path, repr2)
 
-    def test_get_dependency(self):
+    def test_get_dep(self):
         model = Model1().load(source=get_path(self.DOCFREQ_PATH))
         model.meta["dependencies"] = [{"model": "xxx", "uuid": "yyy"},
                                       {"model": "zzz", "uuid": None}]
-        self.assertEqual(model.dep("xxx")["uuid"], "yyy")
+        self.assertEqual(model.get_dep("xxx")["uuid"], "yyy")
 
     def _validate_meta(self, model):
         meta = model.meta
@@ -193,6 +193,18 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(m2.version, [2, 0, 0])
         with self.assertRaises(ValueError):
             model.derive("1.2.3")
+
+    def test_derive_init(self):
+        model = Model1()
+        self.assertTrue(model.meta["__init__"])
+        model.derive()
+        self.assertEqual(model.version, [1, 0, 0])
+
+    def test_set_dep(self):
+        model1 = Model1()
+        model2 = Model2()
+        model1.set_dep(model2)
+        self.assertIs(model1.get_dep("model2"), model2.meta)
 
     def test_props(self):
         path = get_path(self.DOCFREQ_PATH)
