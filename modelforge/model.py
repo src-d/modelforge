@@ -6,7 +6,7 @@ import shutil
 import tempfile
 import uuid
 from pprint import pformat
-from typing import Union
+from typing import Union, Iterable
 
 import asdf
 import numpy
@@ -39,7 +39,8 @@ class Model:
         self._log = logging.getLogger(self.NAME)
         self._log.setLevel(kwargs.get("log_level", logging.DEBUG))
         self._source = None
-        self._meta = generate_meta(self.NAME, tuple())
+        self._meta = generate_meta(self.NAME, (1, 0, 0))
+        self._meta["__init__"] = True
 
     def load(self, source: Union[str, "Model"]=None,
              cache_dir: str=None, backend: StorageBackend=None) -> "Model":
@@ -140,6 +141,7 @@ class Model:
 
         return property(get, set)
 
+    uuid = metaprop("uuid")
     description = metaprop("description")
     references = metaprop("references")
     extra = metaprop("extra")
@@ -160,13 +162,17 @@ class Model:
         meta = self.meta
         if new_version is None:
             new_version = meta["version"]
-            new_version[-1] += 1
+            if not meta.get("__init__", False):
+                new_version[-1] += 1
         if not isinstance(new_version, (tuple, list)):
             raise ValueError("new_version must be either a list or a tuple, got %s"
                              % type(new_version))
         meta["version"] = list(new_version)
-        meta["parent"] = meta["uuid"]
-        meta["uuid"] = str(uuid.uuid4())
+        if not meta.get("__init__", False):
+            meta["parent"] = meta["uuid"]
+            meta["uuid"] = str(uuid.uuid4())
+        else:
+            del meta["__init__"]
         return self
 
     def __str__(self):
@@ -213,7 +219,7 @@ class Model:
     def cache_dir():
         return os.path.join("~", "." + config.VENDOR)
 
-    def dep(self, name):
+    def get_dep(self, name):
         """
         Returns the uuid of the dependency identified with "name".
         :param name:
@@ -225,6 +231,16 @@ class Model:
                 return d
         raise KeyError("%s not found in %s." % (name, deps))
 
+    def set_dep(self, *deps):
+        """
+        Registers the dependencies for this model.
+        :param deps: The parent models: objects or meta dicts.
+        :return: self
+        """
+        self.meta["dependencies"] = [
+            (d.meta if not isinstance(d, dict) else d) for d in deps]
+        return self
+
     def dump(self) -> str:
         """
         Returns the string with the brief information about the model.
@@ -232,12 +248,22 @@ class Model:
         """
         raise NotImplementedError()
 
-    def save(self, output, deps: Union[None, list]=None) -> None:
+    def save(self, output, deps: Iterable=tuple()) -> None:
         """
-        Serializes the model on disk.
+        Serializes the model to a file.
 
         :param output: path to the file.
-        :param deps: the list of dependencies.
+        :param deps: the list of the dependencies.
+        :return: None
+        """
+        self.set_dep(*deps).derive()
+        self._write(output)
+
+    def _write(self, output):
+        """
+        Serialization implementation.
+
+        :param output: path to the file.
         :return: None
         """
         raise NotImplementedError()
@@ -367,6 +393,8 @@ def write_model(meta: dict, tree: dict, output: str, file_mode: int=0o666) -> No
     :param file_mode: The model file's permission.
     :return: None
     """
+    meta = meta.copy()
+    meta.pop("__init__", None)
     final_tree = {"meta": meta}
     final_tree.update(tree)
     asdf.AsdfFile(final_tree).write_to(output, all_array_compression=ARRAY_COMPRESSION)

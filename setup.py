@@ -12,7 +12,7 @@ setup(
     description='APIs and tools to work with abstract "models" - files '
                 'with numpy arrays and metadata. It is possible to publish '
                 'models, list them. There is a built-in cache. Storage has backends.',
-    version="0.3.1-alpha",
+    version="0.4.0-alpha",
     license="Apache 2.0",
     author="source{d}",
     author_email="machine-learning@sourced.tech",
