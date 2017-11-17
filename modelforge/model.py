@@ -257,13 +257,13 @@ class Model:
         :return: None
         """
         self.set_dep(*deps).derive()
-        self._write(output)
+        tree = self._generate_tree()
+        write_model(self._meta, tree, output)
 
-    def _write(self, output):
+    def _generate_tree(self):
         """
-        Serialization implementation.
+        Returns the tree to store in ASDF file.
 
-        :param output: path to the file.
         :return: None
         """
         raise NotImplementedError()
