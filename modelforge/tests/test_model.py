@@ -68,6 +68,19 @@ class Model7(Model6):
         pass
 
 
+class Model8(Model):
+    NAME = "model8"
+
+    def _load_tree(self, tree):
+        self.tree = tree
+
+    def _generate_tree(self):
+        return {"abc": 777}
+
+    def dump(self):
+        return "model8"
+
+
 def get_path(name):
     return os.path.join(os.path.dirname(__file__), name)
 
@@ -214,6 +227,11 @@ class ModelTests(unittest.TestCase):
                 getattr(model, n)
         self.assertEqual(model.version, [1, 0, 0])
         self.assertEqual(model.created_at, datetime.datetime(2017, 6, 19, 9, 59, 14, 766638))
+
+    def test_save(self):
+        with tempfile.NamedTemporaryFile(prefix="modelforge-test-") as f:
+            Model8().save(f.name)
+            self.assertEqual(Model8().load(f.name).tree["abc"], 777)
 
 
 class SerializationTests(unittest.TestCase):
