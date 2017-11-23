@@ -62,47 +62,49 @@ class Model:
             raise TypeError("backend must be an instance of "
                             "modelforge.storage_backend.StorageBackend")
         self._source = source
-        if cache_dir is None:
-            if self.NAME is not None:
-                cache_dir = os.path.join(self.cache_dir(), self.NAME)
-            else:
-                cache_dir = tempfile.mkdtemp(prefix="ast2vec-")
+        cache_dir = None
         try:
-            try:
-                uuid.UUID(source)
-                is_uuid = True
-            except (TypeError, ValueError):
-                is_uuid = False
-            model_id = self.DEFAULT_NAME if not is_uuid else source
-            file_name = model_id + self.DEFAULT_FILE_EXT
-            file_name = os.path.join(os.path.expanduser(cache_dir), file_name)
-            if os.path.exists(file_name) and (not source or not os.path.exists(source)):
-                source = file_name
-            elif source is None or is_uuid:
-                if backend is None:
-                    raise ValueError("The backend must be set to load a UUID or the default "
-                                     "model.")
-                index = backend.fetch_index()
-                config = index["models"]
-                if self.NAME is not None:
-                    source = config[self.NAME][model_id]
-                    if not is_uuid:
-                        source = config[self.NAME][source]
-                else:
-                    if not is_uuid:
-                        raise ValueError("File path, URL or UUID is needed.")
-                    for models in config.values():
-                        if source in models:
-                            source = models[source]
-                            break
+            if source is None or not os.path.isfile(source):
+                if cache_dir is None:
+                    if self.NAME is not None:
+                        cache_dir = os.path.join(self.cache_dir(), self.NAME)
                     else:
-                        raise FileNotFoundError("Model %s not found." % source)
-                source = source["url"]
-            if re.match(r"\w+://", source):
-                if backend is None:
-                    raise ValueError("The backend must be set to load a URL.")
-                backend.fetch_model(source, file_name)
-                source = file_name
+                        cache_dir = tempfile.mkdtemp(prefix="ast2vec-")
+                try:
+                    uuid.UUID(source)
+                    is_uuid = True
+                except (TypeError, ValueError):
+                    is_uuid = False
+                model_id = self.DEFAULT_NAME if not is_uuid else source
+                file_name = model_id + self.DEFAULT_FILE_EXT
+                file_name = os.path.join(os.path.expanduser(cache_dir), file_name)
+                if os.path.exists(file_name) and (not source or not os.path.exists(source)):
+                    source = file_name
+                elif source is None or is_uuid:
+                    if backend is None:
+                        raise ValueError("The backend must be set to load a UUID or the default "
+                                         "model.")
+                    index = backend.fetch_index()
+                    config = index["models"]
+                    if self.NAME is not None:
+                        source = config[self.NAME][model_id]
+                        if not is_uuid:
+                            source = config[self.NAME][source]
+                    else:
+                        if not is_uuid:
+                            raise ValueError("File path, URL or UUID is needed.")
+                        for models in config.values():
+                            if source in models:
+                                source = models[source]
+                                break
+                        else:
+                            raise FileNotFoundError("Model %s not found." % source)
+                    source = source["url"]
+                if re.match(r"\w+://", source):
+                    if backend is None:
+                        raise ValueError("The backend must be set to load a URL.")
+                    backend.fetch_model(source, file_name)
+                    source = file_name
             self._log.info("Reading %s...", source)
             with asdf.open(source) as model:
                 tree = model.tree
@@ -121,7 +123,7 @@ class Model:
                                 "%s, got %s." % (needed, meta_name))
                 self._load_tree(tree)
         finally:
-            if self.NAME is None:
+            if self.NAME is None and cache_dir is not None:
                 shutil.rmtree(cache_dir)
         return self
 
@@ -217,6 +219,10 @@ class Model:
 
     @staticmethod
     def cache_dir():
+        if config.VENDOR is None:
+            raise RuntimeError("modelforge is not configured; look at modelforge.configuration. "
+                               "Depending on your objective you may or may not want to create a "
+                               "modelforgecfg.py file which sets VENDOR and the rest.")
         return os.path.join("~", "." + config.VENDOR)
 
     def get_dep(self, name):

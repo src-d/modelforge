@@ -8,6 +8,7 @@ import asdf
 import numpy
 from scipy.sparse import csr_matrix
 
+from modelforge import configuration
 import modelforge.gcs_backend
 from modelforge.meta import generate_meta
 from modelforge.backends import create_backend
@@ -94,6 +95,13 @@ class ModelTests(unittest.TestCase):
     def test_file(self):
         model = GenericModel(source=get_path(self.DOCFREQ_PATH))
         self._validate_meta(model)
+        vendor = configuration.VENDOR
+        configuration.VENDOR = None
+        try:
+            model = GenericModel(source=get_path(self.DOCFREQ_PATH))
+            self._validate_meta(model)
+        finally:
+            configuration.VENDOR = vendor
 
     def test_id(self):
         def route(url):
