@@ -195,7 +195,10 @@ class Model:
             if module.__spec__ is not None:
                 module_name = module.__spec__.name
             else:
-                module_name = "[%s]" % module.__file__
+                try:
+                    module_name = "[%s]" % module.__file__
+                except AttributeError:
+                    module_name = "[unknown]"
         return "%s.%s().load(source=%s)" % (
             module_name, type(self).__name__,
             '"%s"' % self._source if self._source is not None else None)
