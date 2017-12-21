@@ -1,4 +1,5 @@
 import datetime
+import inspect
 import os
 import pickle
 import tempfile
@@ -175,6 +176,20 @@ class ModelTests(unittest.TestCase):
         repr2 = repr(model)
         self.assertEqual("modelforge.tests.test_dump.TestModel().load(source=\"%s\")"
                          % path, repr2)
+
+    def test_repr_main(self):
+        path = get_path(self.DOCFREQ_PATH)
+        model = Model1().load(source=path)
+        module = inspect.getmodule(model)
+        module.__name__ = "__main__"
+        module.__spec__ = None
+        module_file = module.__file__
+        del module.__file__
+        try:
+            repr2 = repr(model)
+        finally:
+            module.__file__ = module_file
+        self.assertEqual("[unknown].Model1().load(source=\"%s\")" % path, repr2)
 
     def test_get_dep(self):
         model = Model1().load(source=get_path(self.DOCFREQ_PATH))
