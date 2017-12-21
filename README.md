@@ -26,11 +26,14 @@ The project exposes two interfaces: API and command line.
 
 #### API
 
-`modelforge.models` contains the most important classes and functions: `Model` base class,
-`merge_strings`, `split_strings` optimize the serialization of string lists,
-`disassemble_sparse_matrix` and `assemble_sparse_matrix` handle sparse matrices,
-`write_model` outputs the model to disk. Models can be registered with `modelforge.models.register_model()`
-- this is not strictly needed, it is used for extended model dumps. Most typically, you would like
+`modelforge` package contains the most important classes and functions: `Model` base class,
+`merge_strings`, `split_strings` which optimize the serialization of string lists,
+`disassemble_sparse_matrix`, `assemble_sparse_matrix` which handle sparse matrices.
+A "model" here means something which holds the data and can be (de)serialized, like in
+[web development](https://docs.djangoproject.com/en/2.0/topics/db/models/).
+
+Models can be registered with `modelforge.register_model()`
+- this is not strictly needed, but needed for extended model dumps. Most typically, you would like
 to import all your model classes and register them in a single module.
 
 It is possible to register a custom registry storage with `modelforge.backends.register_backend()`.
