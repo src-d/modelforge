@@ -257,17 +257,18 @@ class Model:
         """
         raise NotImplementedError()
 
-    def save(self, output, deps: Iterable=tuple()) -> None:
+    def save(self, output, deps: Iterable=tuple()) -> "Model":
         """
         Serializes the model to a file.
 
         :param output: path to the file.
         :param deps: the list of the dependencies.
-        :return: None
+        :return: self
         """
         self.set_dep(*deps).derive()
         tree = self._generate_tree()
         write_model(self._meta, tree, output)
+        return self
 
     def _generate_tree(self):
         """
