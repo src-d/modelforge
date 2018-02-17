@@ -6,7 +6,7 @@ import shutil
 import tempfile
 import uuid
 from pprint import pformat
-from typing import Union, Iterable
+from typing import Union, Iterable, BinaryIO, List, Tuple
 
 import asdf
 import numpy
@@ -42,12 +42,12 @@ class Model:
         self._meta = generate_meta(self.NAME, (1, 0, 0))
         self._meta["__init__"] = True
 
-    def load(self, source: Union[str, "Model"]=None,
+    def load(self, source: Union[str, BinaryIO, "Model"]=None,
              cache_dir: str=None, backend: StorageBackend=None) -> "Model":
         """
         Initializes a new Model instance.
 
-        :param source: UUID, file system path or an URL; None means auto.
+        :param source: UUID, file system path, file object or an URL; None means auto.
         :param cache_dir: The directory where to store the downloaded model.
         :param backend: Remote storage backend to use if ``source`` is a UUID or a URL.
         """
@@ -61,10 +61,9 @@ class Model:
         if backend is not None and not isinstance(backend, StorageBackend):
             raise TypeError("backend must be an instance of "
                             "modelforge.storage_backend.StorageBackend")
-        self._source = source
-        cache_dir = None
+        self._source = str(source)
         try:
-            if source is None or not os.path.isfile(source):
+            if source is None or (isinstance(source, str) and not os.path.isfile(source)):
                 if cache_dir is None:
                     if self.NAME is not None:
                         cache_dir = os.path.join(self.cache_dir(), self.NAME)
@@ -154,7 +153,7 @@ class Model:
 
     del metaprop
 
-    def derive(self, new_version: Union[tuple, list]=None):
+    def derive(self, new_version: Union[tuple, list]=None) -> "Model":
         """
         Inherits the new model from the current one. This is used for versioning.
         This operation is in-place.
@@ -221,18 +220,18 @@ class Model:
         self._log.setLevel(log_level)
 
     @staticmethod
-    def cache_dir():
+    def cache_dir() -> str:
         if config.VENDOR is None:
             raise RuntimeError("modelforge is not configured; look at modelforge.configuration. "
                                "Depending on your objective you may or may not want to create a "
                                "modelforgecfg.py file which sets VENDOR and the rest.")
         return os.path.join("~", "." + config.VENDOR)
 
-    def get_dep(self, name):
+    def get_dep(self, name: str) -> str:
         """
         Returns the uuid of the dependency identified with "name".
         :param name:
-        :return:
+        :return: UUID
         """
         deps = self.meta["dependencies"]
         for d in deps:
@@ -240,7 +239,7 @@ class Model:
                 return d
         raise KeyError("%s not found in %s." % (name, deps))
 
-    def set_dep(self, *deps):
+    def set_dep(self, *deps) -> "Model":
         """
         Registers the dependencies for this model.
         :param deps: The parent models: objects or meta dicts.
@@ -257,20 +256,37 @@ class Model:
         """
         raise NotImplementedError()
 
-    def save(self, output, deps: Iterable=tuple()) -> "Model":
+    def save(self, output: Union[str, BinaryIO], deps: Iterable=tuple()) -> "Model":
         """
         Serializes the model to a file.
 
-        :param output: path to the file.
+        :param output: path to the file or a file object.
         :param deps: the list of the dependencies.
         :return: self
         """
         self.set_dep(*deps).derive()
         tree = self._generate_tree()
-        write_model(self._meta, tree, output)
+        self._write_tree(tree, output)
         return self
 
-    def _generate_tree(self):
+    def _write_tree(self, tree: dict, output: Union[str, BinaryIO], file_mode: int=0o666) -> None:
+        """
+        Writes the model to disk.
+
+        :param tree: The data dict - will be the ASDF tree.
+        :param output: The output file path or a file object.
+        :param file_mode: The output file's permissions.
+        :return: None
+        """
+        meta = self.meta.copy()
+        meta.pop("__init__", None)
+        final_tree = {"meta": meta}
+        final_tree.update(tree)
+        asdf.AsdfFile(final_tree).write_to(output, all_array_compression=ARRAY_COMPRESSION)
+        if isinstance(output, str):
+            os.chmod(output, file_mode)
+
+    def _generate_tree(self) -> dict:
         """
         Returns the tree to store in ASDF file.
 
@@ -288,7 +304,7 @@ class Model:
         raise NotImplementedError()
 
 
-def merge_strings(list_of_strings):
+def merge_strings(list_of_strings: Union[List[str], Tuple[str]]) -> dict:
     """
     Packs the list of strings into two arrays: the concatenated chars and the
     individual string lengths. :func:`split_strings()` does the inverse.
@@ -333,7 +349,7 @@ def merge_strings(list_of_strings):
     return {"strings": strings, "lengths": lengths, "str": with_str}
 
 
-def split_strings(subtree):
+def split_strings(subtree: dict) -> List[str]:
     """
     Produces the list of strings from the dictionary with concatenated chars
     and lengths. Opposite to :func:`merge_strings()`.
@@ -353,7 +369,7 @@ def split_strings(subtree):
     return result
 
 
-def disassemble_sparse_matrix(matrix):
+def disassemble_sparse_matrix(matrix: scipy.sparse.spmatrix) -> dict:
     """
     Transforms a scipy.sparse matrix into the serializable collection of
     :class:`numpy.ndarray`-s. :func:`assemble_sparse_matrix()` does the inverse.
@@ -377,7 +393,7 @@ def disassemble_sparse_matrix(matrix):
     return result
 
 
-def assemble_sparse_matrix(subtree):
+def assemble_sparse_matrix(subtree: dict) -> scipy.sparse.spmatrix:
     """
     Transforms a dictionary with "shape", "format" and "data" into the
     :mod:`scipy.sparse` matrix.
@@ -390,22 +406,3 @@ def assemble_sparse_matrix(subtree):
     matrix_class = getattr(scipy.sparse, "%s_matrix" % subtree["format"])
     matrix = matrix_class(tuple(subtree["data"]), shape=subtree["shape"])
     return matrix
-
-
-def write_model(meta: dict, tree: dict, output: str, file_mode: int=0o666) -> None:
-    """
-    Writes the model to disk.
-
-    :param meta: Metadata of the model. Most likely generated with \
-                 :func:`modelforge.meta.generate_meta`.
-    :param tree: The data dict.
-    :param output: The output file path.
-    :param file_mode: The model file's permission.
-    :return: None
-    """
-    meta = meta.copy()
-    meta.pop("__init__", None)
-    final_tree = {"meta": meta}
-    final_tree.update(tree)
-    asdf.AsdfFile(final_tree).write_to(output, all_array_compression=ARRAY_COMPRESSION)
-    os.chmod(output, file_mode)
