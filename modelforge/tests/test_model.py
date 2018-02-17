@@ -1,5 +1,6 @@
 import datetime
 import inspect
+from io import BytesIO
 import os
 import pickle
 import tempfile
@@ -14,8 +15,8 @@ import modelforge.gcs_backend
 from modelforge.meta import generate_meta
 from modelforge.backends import create_backend
 from modelforge.gcs_backend import GCSBackend
-from modelforge.model import merge_strings, split_strings, \
-    assemble_sparse_matrix, disassemble_sparse_matrix, Model, write_model
+from modelforge.model import merge_strings, split_strings, assemble_sparse_matrix, \
+    disassemble_sparse_matrix, Model
 from modelforge.models import GenericModel
 from modelforge.tests.fake_requests import FakeRequests
 from modelforge.tests.test_dump import TestModel
@@ -355,13 +356,33 @@ class SerializationTests(unittest.TestCase):
             self.assertEqual(docfreq.__dict__[k], docfreq_rec.__dict__[k])
 
     def test_write(self):
-        meta = generate_meta("test", (1, 0, 3))
+        model = Model()
+        model._meta = generate_meta("test", (1, 0, 3))
         with tempfile.NamedTemporaryFile() as tmp:
-            write_model(meta, {"xxx": 100500}, tmp.name)
+            model._write_tree({"xxx": 100500}, tmp.name)
             with asdf.open(tmp.name) as f:
                 self.assertEqual(f.tree["meta"]["model"], "test")
                 self.assertEqual(f.tree["xxx"], 100500)
                 self.assertEqual(oct(os.stat(tmp.name).st_mode)[-3:], "666")
+
+    def test_write_fileobj(self):
+        model = Model()
+        model._meta = generate_meta("test", (1, 0, 3))
+        buffer = BytesIO()
+        model._write_tree({"xxx": 100500}, buffer)
+        buffer.seek(0)
+        with asdf.open(buffer) as f:
+            self.assertEqual(f.tree["meta"]["model"], "test")
+            self.assertEqual(f.tree["xxx"], 100500)
+
+    def test_load_fileobj(self):
+        path = get_path(self.DOCFREQ_PATH)
+        buffer = BytesIO()
+        with open(path, "rb") as fin:
+            buffer.write(fin.read())
+        buffer.seek(0)
+        model = Model1().load(source=buffer)
+        self.assertEqual(model.created_at, datetime.datetime(2017, 6, 19, 9, 59, 14, 766638))
 
 
 if __name__ == "__main__":
