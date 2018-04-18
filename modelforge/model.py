@@ -68,7 +68,7 @@ class Model:
                     if self.NAME is not None:
                         cache_dir = os.path.join(self.cache_dir(), self.NAME)
                     else:
-                        cache_dir = tempfile.mkdtemp(prefix="ast2vec-")
+                        cache_dir = tempfile.mkdtemp(prefix="ml-")
                 try:
                     uuid.UUID(source)
                     is_uuid = True
