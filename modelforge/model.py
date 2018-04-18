@@ -263,7 +263,7 @@ class Model:
 
         :param output: path to the file or a file object.
         :param deps: the list of the dependencies.
-        :param create_missing_dirs: create missing directories in output path if the output is a
+        :param create_missing_dirs: create missing directories in output path if the output is a \
                                     path.
         :return: self
         """
