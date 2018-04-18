@@ -340,8 +340,8 @@ def merge_strings(list_of_strings: Union[List[str], Tuple[str]]) -> dict:
     for s in list_of_strings:
         length = len(s)
         lengths.append(length)
-        if l > max_len:
-            max_len = l
+        if length > max_len:
+            max_len = length
     bl = max_len.bit_length()
     if bl <= 8:
         dtype = numpy.uint8
