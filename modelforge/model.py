@@ -338,8 +338,8 @@ def merge_strings(list_of_strings: Union[List[str], Tuple[str]]) -> dict:
     max_len = 0
     lengths = []
     for s in list_of_strings:
-        l = len(s)
-        lengths.append(l)
+        length = len(s)
+        lengths.append(length)
         if l > max_len:
             max_len = l
     bl = max_len.bit_length()

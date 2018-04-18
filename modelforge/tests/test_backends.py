@@ -52,5 +52,6 @@ class BackendsTests(unittest.TestCase):
 
         self.assertIsNone(backends.create_backend_noexc(logger, "Bar!!!"))
 
+
 if __name__ == "__main__":
     unittest.main()

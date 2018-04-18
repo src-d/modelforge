@@ -46,5 +46,6 @@ class MainTests(unittest.TestCase):
         argparse.ArgumentParser.error = error
         self.assertEqual(sum(handlers), 4)
 
+
 if __name__ == "__main__":
     unittest.main()

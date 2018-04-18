@@ -119,7 +119,7 @@ class GCSBackend(StorageBackend):
             if sentinel is not None:
                 try:
                     sentinel.delete()
-                except:
+                except:  # nopep8
                     pass
 
     def upload_model(self, path, meta, force):

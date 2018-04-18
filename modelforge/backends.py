@@ -23,7 +23,7 @@ def create_backend(name: str=None, args: str=None):
     if args:
         try:
             kwargs = dict(p.split("=") for p in args.split(","))
-        except:
+        except:  # nopep8
             raise ValueError("Invalid args") from None
     else:
         kwargs = {}
