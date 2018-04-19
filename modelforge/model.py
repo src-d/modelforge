@@ -68,7 +68,7 @@ class Model:
                     if self.NAME is not None:
                         cache_dir = os.path.join(self.cache_dir(), self.NAME)
                     else:
-                        cache_dir = tempfile.mkdtemp(prefix="ast2vec-")
+                        cache_dir = tempfile.mkdtemp(prefix="modelforge-")
                 try:
                     uuid.UUID(source)
                     is_uuid = True
@@ -256,14 +256,21 @@ class Model:
         """
         raise NotImplementedError()
 
-    def save(self, output: Union[str, BinaryIO], deps: Iterable=tuple()) -> "Model":
+    def save(self, output: Union[str, BinaryIO], deps: Iterable=tuple(),
+             create_missing_dirs: bool=True) -> "Model":
         """
         Serializes the model to a file.
 
         :param output: path to the file or a file object.
         :param deps: the list of the dependencies.
+        :param create_missing_dirs: create missing directories in output path if the output is a \
+                                    path.
         :return: self
         """
+        if isinstance(output, str) and create_missing_dirs:
+            dirs = os.path.split(output)[0]
+            if dirs:
+                os.makedirs(dirs, exist_ok=True)
         self.set_dep(*deps).derive()
         tree = self._generate_tree()
         self._write_tree(tree, output)
@@ -331,10 +338,10 @@ def merge_strings(list_of_strings: Union[List[str], Tuple[str]]) -> dict:
     max_len = 0
     lengths = []
     for s in list_of_strings:
-        l = len(s)
-        lengths.append(l)
-        if l > max_len:
-            max_len = l
+        length = len(s)
+        lengths.append(length)
+        if length > max_len:
+            max_len = length
     bl = max_len.bit_length()
     if bl <= 8:
         dtype = numpy.uint8

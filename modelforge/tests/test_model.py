@@ -257,6 +257,14 @@ class ModelTests(unittest.TestCase):
             Model8().save(f.name)
             self.assertEqual(Model8().load(f.name).tree["abc"], 777)
 
+    def test_save_create_missing_dirs(self):
+        with tempfile.TemporaryDirectory(prefix="modelforge-test-") as savedir:
+            savepath = os.path.join(savedir, "add/some/subdirs/", "model.asdf")
+            with self.assertRaises(FileNotFoundError) as _:
+                Model8().save(savepath, create_missing_dirs=False)
+            Model8().save(savepath)
+            self.assertEqual(Model8().load(savepath).tree["abc"], 777)
+
 
 class SerializationTests(unittest.TestCase):
     DOCFREQ_PATH = "test.asdf"

@@ -20,5 +20,6 @@ class ProgressBarTests(unittest.TestCase):
                          "[################################] 10/10 - 00:00:00")
         progress.STREAM = sys.stderr
 
+
 if __name__ == "__main__":
     unittest.main()
