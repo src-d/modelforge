@@ -266,7 +266,6 @@ class ModelTests(unittest.TestCase):
             self.assertEqual(Model8().load(savepath).tree["abc"], 777)
 
 
-
 class SerializationTests(unittest.TestCase):
     DOCFREQ_PATH = "test.asdf"
 
