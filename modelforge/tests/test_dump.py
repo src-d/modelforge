@@ -49,7 +49,7 @@ class DumpTests(unittest.TestCase):
         gcs_backend.requests = FakeRequests(route)
         with captured_output() as (out, err, _):
             dump_model(self._get_args(
-                input="f64bacd4-67fb-4c64-8382-399a8e7db52a"))
+                input="f64bacd4-67fb-4c64-8382-399a8e7db52a", backend="gcs"))
         self.assertEqual(out.getvalue(), self.DOCFREQ_DUMP)
         self.assertFalse(err.getvalue())
 
@@ -61,12 +61,12 @@ class DumpTests(unittest.TestCase):
 
         gcs_backend.requests = FakeRequests(route)
         with captured_output() as (out, _, _):
-            dump_model(self._get_args(input="https://xxx"))
+            dump_model(self._get_args(input="https://xxx", backend="gcs"))
         self.assertEqual(out.getvalue(), self.DOCFREQ_DUMP)
 
     @staticmethod
-    def _get_args(input=None):
-        return argparse.Namespace(input=input, backend=None, args=None, log_level="WARNING")
+    def _get_args(input=None, backend=None):
+        return argparse.Namespace(input=input, backend=backend, args=None, log_level="WARNING")
 
     @staticmethod
     def _get_path(name):

@@ -29,9 +29,6 @@ def main():
     dump_parser.set_defaults(handler=dump_model)
     dump_parser.add_argument(
         "input", help="Path to the model file, URL or UUID.")
-    dump_parser.add_argument(
-        "--local", help="Indicates whether the model is in a local file system",
-        default=False, action="store_true")
     add_backend_args(dump_parser)
 
     publish_parser = subparsers.add_parser(

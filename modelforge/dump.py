@@ -6,7 +6,7 @@ from modelforge.storage_backend import StorageBackend
 import modelforge.models as models
 
 
-@supply_backend
+@supply_backend(optional=True)
 def dump_model(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
     Prints the information about the model.

@@ -55,13 +55,12 @@ class BackendsTests(unittest.TestCase):
 
     def test_supply_backend(self):
 
-        @backends.supply_backend
-        def test_local(args, backend, log):
+        @backends.supply_backend(optional=True)
+        def test_optional(args, backend, log):
             return backend
 
-        self.assertIsNone(test_local(argparse.Namespace(local=True)))
-        self.assertEqual(test_local(argparse.Namespace(backend=None, args=None)), 1)
-        self.assertEqual(test_local(argparse.Namespace(local=False, backend=None, args=None)), 1)
+        self.assertIsNone(test_optional(argparse.Namespace()))
+        self.assertEqual(test_optional(argparse.Namespace(backend="none", args="")), 1)
 
 
 if __name__ == "__main__":

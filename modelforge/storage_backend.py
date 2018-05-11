@@ -53,7 +53,7 @@ class StorageBackend:
 
     def delete_model(self, meta: dict):
         """
-        Deletes the given file from the remote storage.
+        Deletes the model associated to the metadata dictionary from the remote storage.
 
         :param meta: Metadata of the model.
         :raises TransactionRequiredError: If called not in a lock scope.
