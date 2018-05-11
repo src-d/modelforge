@@ -1,3 +1,4 @@
+import argparse
 import logging
 import unittest
 
@@ -51,6 +52,16 @@ class BackendsTests(unittest.TestCase):
             backends.config.BACKEND_ARGS = backup
 
         self.assertIsNone(backends.create_backend_noexc(logger, "Bar!!!"))
+
+    def test_supply_backend(self):
+
+        @backends.supply_backend
+        def test_local(args, backend, log):
+            return backend
+
+        self.assertIsNone(test_local(argparse.Namespace(local=True)))
+        self.assertEqual(test_local(argparse.Namespace(backend=None, args=None)), 1)
+        self.assertEqual(test_local(argparse.Namespace(local=False, backend=None, args=None)), 1)
 
 
 if __name__ == "__main__":

@@ -185,3 +185,15 @@ class GCSBackend(StorageBackend):
         finally:
             if isinstance(where, str):
                 f.close()
+
+    def delete_model(self, meta):
+        bucket = self._bucket
+        if bucket is None:
+            raise TransactionRequiredError
+        blob_name = "models/%s/%s.asdf" % (meta["model"], meta["uuid"])
+        self._log.info(blob_name)
+        if not bucket.blob(blob_name).exists():
+            self._log.error("Model %s already deleted, still updating the index.", meta["uuid"])
+        else:
+            self._log.info("Deleting model ...")
+            bucket.delete_blob(blob_name)

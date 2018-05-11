@@ -93,6 +93,9 @@ class GCSBackendTests(unittest.TestCase):
     def test_upload_index(self):
         pass
 
+    def test_delete_model(self):
+        pass
+
 
 if __name__ == "__main__":
     unittest.main()

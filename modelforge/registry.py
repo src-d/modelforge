@@ -11,7 +11,7 @@ from modelforge.storage_backend import StorageBackend
 from modelforge.backends import supply_backend
 
 
-@supply_backend("publish")
+@supply_backend
 def publish_model(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
     Pushes the model to Google Cloud Storage and updates the index file.
@@ -42,7 +42,7 @@ def publish_model(args: argparse.Namespace, backend: StorageBackend, log: loggin
         backend.upload_index(index)
 
 
-@supply_backend("list")
+@supply_backend
 def list_models(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
     Outputs the list of known models in the registry.
@@ -66,7 +66,7 @@ def list_models(args: argparse.Namespace, backend: StorageBackend, log: logging.
                   meta["created_at"])
 
 
-@supply_backend("list")
+@supply_backend
 def initialize_registry(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
     Initialize the registry - list and publish will fail otherwise.

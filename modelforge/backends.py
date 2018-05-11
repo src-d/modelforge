@@ -42,16 +42,14 @@ def create_backend_noexc(log: logging.Logger, name: str=None, args: str=None):
         return None
 
 
-def supply_backend(name):
-    def supply_backend_inner(func):
-        def wrapped_supply_backend(args):
-            log = logging.getLogger(name)
-            if "local" in args and args.local:
-                backend = None
-            else:
-                backend = create_backend_noexc(log, args.backend, args.args)
-                if backend is None:
-                    return 1
-            return func(args, backend, log)
-        return wrapped_supply_backend
+def supply_backend(func):
+    def supply_backend_inner(args):
+        log = logging.getLogger(func.__name__)
+        if getattr(args, "local", False):
+            backend = None
+        else:
+            backend = create_backend_noexc(log, args.backend, args.args)
+            if backend is None:
+                return 1
+        return func(args, backend, log)
     return supply_backend_inner
