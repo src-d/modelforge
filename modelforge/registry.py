@@ -7,20 +7,8 @@ from dateutil.parser import parse as parse_datetime
 from modelforge.meta import extract_index_meta
 from modelforge.model import Model
 from modelforge.models import GenericModel
-from modelforge.backends import create_backend_noexc
 from modelforge.storage_backend import StorageBackend
-
-
-def supply_backend(name):
-    def supply_backend_inner(func):
-        def wrapped_supply_backend(args):
-            log = logging.getLogger(name)
-            backend = create_backend_noexc(log, args.backend, args.args)
-            if backend is None:
-                return 1
-            return func(args, backend, log)
-        return wrapped_supply_backend
-    return supply_backend_inner
+from modelforge.backends import supply_backend
 
 
 @supply_backend("publish")
