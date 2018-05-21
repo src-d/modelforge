@@ -30,16 +30,15 @@ def publish_model(args: argparse.Namespace, backend: StorageBackend, log: loggin
         log.critical("Failed to load the model: %s: %s" % (type(e).__name__, e))
         return 1
     meta = model.meta
-    with backend.lock():
-        model_url = backend.upload_model(path, meta, args.force)
-        log.info("Uploaded as %s", model_url)
-        log.info("Updating the models index...")
-        index = backend.fetch_index()
-        index["models"].setdefault(meta["model"], {})[meta["uuid"]] = \
-            extract_index_meta(meta, model_url)
-        if args.update_default:
-            index["models"][meta["model"]][Model.DEFAULT_NAME] = meta["uuid"]
-        backend.upload_index(index)
+    model_url = backend.upload_model(path, meta, args.force)
+    log.info("Uploaded as %s", model_url)
+    log.info("Updating the models index...")
+    index = backend.fetch_index()
+    index["models"].setdefault(meta["model"], {})[meta["uuid"]] = \
+        extract_index_meta(meta, model_url)
+    if args.update_default:
+        index["models"][meta["model"]][Model.DEFAULT_NAME] = meta["uuid"]
+    backend.upload_index(index)
 
 
 @supply_backend
@@ -83,6 +82,5 @@ def initialize_registry(args: argparse.Namespace, backend: StorageBackend, log: 
     except FileNotFoundError:
         pass
     # The lock is not needed here, but upload_index() will raise otherwise
-    with backend.lock():
-        backend.upload_index({"models": {}})
+    backend.upload_index({"models": {}})
     log.info("Successfully initialized")

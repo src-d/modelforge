@@ -1,5 +1,6 @@
 import logging
 from typing import Type
+from functools import wraps
 
 import modelforge.configuration as config
 from modelforge.gcs_backend import GCSBackend
@@ -46,6 +47,7 @@ def supply_backend(optional=False):
     real_optional = False if callable(optional) else optional
 
     def supply_backend_inner(func):
+        @wraps(func)
         def wrapped_supply_backend(args):
             log = logging.getLogger(func.__name__)
             if real_optional and not getattr(args, "backend", False):
