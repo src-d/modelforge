@@ -1,10 +1,13 @@
+import argparse
 import logging
 
-from modelforge.backends import create_backend_noexc
+from modelforge.registry import supply_backend
+from modelforge.storage_backend import StorageBackend
 import modelforge.models as models
 
 
-def dump_model(args):
+@supply_backend(optional=True)
+def dump_model(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
     Prints the information about the model.
 
@@ -12,8 +15,4 @@ def dump_model(args):
                  "log_level".
     :return: None
     """
-    log = logging.getLogger("dump")
-    backend = create_backend_noexc(log, args.backend, args.args)
-    if backend is None:
-        return 1
     print(models.GenericModel(args.input, backend=backend))

@@ -8,7 +8,7 @@ import modelforge.__main__ as main
 
 class MainTests(unittest.TestCase):
     def test_handlers(self):
-        handlers = [False] * 4
+        handlers = [False] * 5
 
         def validate_args(args):
             self.assertTrue(hasattr(args, "backend"))
@@ -30,21 +30,26 @@ class MainTests(unittest.TestCase):
             validate_args(args)
             handlers[3] = True
 
+        def delete_model(args):
+            validate_args(args)
+            handlers[4] = True
+
         main.dump_model = dump_model
         main.publish_model = publish_model
         main.list_models = list_models
         main.initialize_registry = initialize_registry
+        main.delete_model = delete_model
         args = sys.argv
         error = argparse.ArgumentParser.error
         argparse.ArgumentParser.error = lambda self, message: None
 
-        for action in ("dump", "publish", "list", "init"):
+        for action in ("dump", "publish", "list", "init", "delete"):
             sys.argv = [main.__file__, action]
             main.main()
 
         sys.argv = args
         argparse.ArgumentParser.error = error
-        self.assertEqual(sum(handlers), 4)
+        self.assertEqual(sum(handlers), 5)
 
 
 if __name__ == "__main__":

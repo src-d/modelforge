@@ -1,13 +1,14 @@
-from contextlib import contextmanager
 import io
 import json
 import logging
 import math
 import os
 import time
-
-from clint.textui import progress
 import requests
+
+from contextlib import contextmanager
+from clint.textui import progress
+from google.cloud.exceptions import NotFound
 
 from modelforge.progress_bar import progress_bar
 from modelforge.storage_backend import StorageBackend, TransactionRequiredError
@@ -185,3 +186,15 @@ class GCSBackend(StorageBackend):
         finally:
             if isinstance(where, str):
                 f.close()
+
+    def delete_model(self, meta):
+        bucket = self._bucket
+        if bucket is None:
+            raise TransactionRequiredError
+        blob_name = "models/%s/%s.asdf" % (meta["model"], meta["uuid"])
+        self._log.info(blob_name)
+        try:
+            self._log.info("Deleting model ...")
+            bucket.delete_blob(blob_name)
+        except NotFound:
+            self._log.warning("Model %s already deleted.", meta["uuid"])

@@ -7,23 +7,11 @@ from dateutil.parser import parse as parse_datetime
 from modelforge.meta import extract_index_meta
 from modelforge.model import Model
 from modelforge.models import GenericModel
-from modelforge.backends import create_backend_noexc
 from modelforge.storage_backend import StorageBackend
+from modelforge.backends import supply_backend
 
 
-def supply_backend(name):
-    def supply_backend_inner(func):
-        def wrapped_supply_backend(args):
-            log = logging.getLogger(name)
-            backend = create_backend_noexc(log, args.backend, args.args)
-            if backend is None:
-                return 1
-            return func(args, backend, log)
-        return wrapped_supply_backend
-    return supply_backend_inner
-
-
-@supply_backend("publish")
+@supply_backend
 def publish_model(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
     Pushes the model to Google Cloud Storage and updates the index file.
@@ -54,7 +42,7 @@ def publish_model(args: argparse.Namespace, backend: StorageBackend, log: loggin
         backend.upload_index(index)
 
 
-@supply_backend("list")
+@supply_backend
 def list_models(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
     Outputs the list of known models in the registry.
@@ -78,7 +66,7 @@ def list_models(args: argparse.Namespace, backend: StorageBackend, log: logging.
                   meta["created_at"])
 
 
-@supply_backend("list")
+@supply_backend
 def initialize_registry(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
     Initialize the registry - list and publish will fail otherwise.

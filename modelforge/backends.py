@@ -40,3 +40,22 @@ def create_backend_noexc(log: logging.Logger, name: str=None, args: str=None):
     except ValueError:
         log.critical("Invalid backend arguments: %s", args)
         return None
+
+
+def supply_backend(optional=False):
+    real_optional = False if callable(optional) else optional
+
+    def supply_backend_inner(func):
+        def wrapped_supply_backend(args):
+            log = logging.getLogger(func.__name__)
+            if real_optional and not getattr(args, "backend", False):
+                backend = None
+            else:
+                backend = create_backend_noexc(log, args.backend, args.args)
+                if backend is None:
+                    return 1
+            return func(args, backend, log)
+        return wrapped_supply_backend
+    if callable(optional):
+        return supply_backend_inner(optional)
+    return supply_backend_inner

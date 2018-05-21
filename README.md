@@ -11,7 +11,7 @@ Each model receives a UUID and carries other metadata. The underlying file forma
 
 Currently, only one registry storage backend is supported: Google Cloud Storage.
 
-[src-d/ast2vec](https://github.com/src-d/ast2vec) uses `modelforge` to make ML on source code accessible
+[src-d/ml](https://github.com/src-d/ml) uses `modelforge` to make ML on source code accessible
 for everybody.
 
 ## Install
@@ -44,10 +44,17 @@ It is possible to register a custom registry storage with `modelforge.backends.r
 python3 -m modelforge --help
 ```
 
-* `dump` prints brief information about the model. Local path, URL or UUID may be specified.
-* `publish` pushes the model file to the registry and updates the index.
-* `list` lists all the models in the registry.
 * `init` initializes the empty registry.
+* `publish` pushes the model file specified to the registry and updates the index
+* `dump` prints brief information about the model. Local path, URL or UUID must be specified:
+```
+modelforge dump https://storage.googleapis.com/models.cdn.sourced.tech/models/<model>/<uuid>.asdf \
+    --backend "gcs" --args bucket="models.cdn.sourced.tech"
+modelforge dump <uuid> --backend "gcs" --args bucket="models.cdn.sourced.tech"
+modelforge dump /path/to/model
+```
+* `list` lists all the models in the registry.
+* `delete` deletes a model, UUID must be specified.
 
 #### Configuration
 

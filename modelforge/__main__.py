@@ -5,6 +5,7 @@ import sys
 from modelforge.logs import setup_logging
 from modelforge.registry import publish_model, list_models, initialize_registry
 from modelforge.dump import dump_model
+from modelforge.delete import delete_model
 
 
 def main():
@@ -50,6 +51,12 @@ def main():
     init_parser = subparsers.add_parser("init", help="Initialize the registry.")
     init_parser.set_defaults(handler=initialize_registry)
     add_backend_args(init_parser)
+
+    delete_parser = subparsers.add_parser("delete", help="Delete a model.")
+    delete_parser.set_defaults(handler=delete_model)
+    delete_parser.add_argument(
+        "input", help="Path to the model file, URL or UUID.")
+    add_backend_args(delete_parser)
 
     args = parser.parse_args()
     args.log_level = logging._nameToLevel[args.log_level]
