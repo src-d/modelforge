@@ -21,7 +21,7 @@ setup(
     packages=find_packages(exclude=("modelforge.tests",)),
     keywords=["model", "asdf", "gcs", "google cloud storage",
               "machine learning"],
-    install_requires=["asdf>=1.3,<2.0",
+    install_requires=["asdf>=2.0,<3.0",
                       "lz4>=0.10.1",
                       "numpy>=1.12,<2.0",
                       "scipy>=1.0,<2.0",
