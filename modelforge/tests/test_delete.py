@@ -1,6 +1,5 @@
 import argparse
 import unittest
-from contextlib import contextmanager
 
 from modelforge.delete import delete_model
 from modelforge.backends import StorageBackend, register_backend
@@ -11,7 +10,6 @@ class FakeBackend(StorageBackend):
 
     NAME = "del"
     index = {"models": {"docfreq": {"default": "2", "1": 1, "2": 2}}}
-    locked = False
     model = [1, 2]
 
     def fetch_model(self, source: str, file: str) -> None:
@@ -20,22 +18,18 @@ class FakeBackend(StorageBackend):
     def fetch_index(self) -> dict:
         return self.index
 
-    @contextmanager
-    def lock(self):
-        FakeBackend.locked = True
-        yield None
-
     def upload_model(self, path: str, meta: dict, force: bool) -> str:
         pass
 
     def upload_index(self, index: dict) -> None:
-        assert self.locked
         self.index = index
 
     def delete_model(self, meta: dict):
-        assert self.locked
         if len(self.model):
             self.model.pop()
+
+    def create_bucket(self):
+        pass
 
 
 class DeleteTests(unittest.TestCase):

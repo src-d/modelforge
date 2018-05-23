@@ -1,9 +1,5 @@
 import io
-from threading import Thread
-import time
 import unittest
-
-from google.cloud.storage import Client
 
 from modelforge.gcs_backend import GCSBackend
 from modelforge.tests.modelforgecfg import BACKEND_ARGS
@@ -15,7 +11,6 @@ BUCKET = BACKEND_ARGS[len("bucket="):BACKEND_ARGS.find(",")]
 class GCSBackendTests(unittest.TestCase):
     def setUp(self):
         self.back = GCSBackend(bucket=BUCKET)
-        self.client = Client()
         self.bucket = self.client.get_bucket(BUCKET)
 
     def test_bucket_name(self):
@@ -54,38 +49,11 @@ class GCSBackendTests(unittest.TestCase):
             else:
                 blob.delete()
 
-    def test_lock(self):
-        boilerplate = "boilerplate"
-        threads_numner = 2
-        clients = [Client() for _ in range(threads_numner)]
-        buckets = [c.get_bucket(BUCKET) for c in clients]
-        backs = [GCSBackend(bucket=BUCKET) for _ in range(threads_numner)]
-
-        def collide(index):
-            back = backs[index]
-            bucket = buckets[index]
-            time.sleep(index / 10)
-            with back.lock():
-                blob = bucket.blob(boilerplate)
-                if blob.exists():
-                    contents = blob.download_as_string().decode()
-                else:
-                    contents = ""
-                contents += "%d\n" % index
-                blob.upload_from_string(contents)
-
-        threads = [Thread(target=collide, args=(i,)) for i in range(threads_numner)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-        blob = self.bucket.blob(boilerplate)
-        self.assertTrue(blob.exists())
-        try:
-            numbers = {int(l) for l in blob.download_as_string().decode().split("\n") if l}
-            self.assertEqual(numbers, set(range(threads_numner)))
-        finally:
-            blob.delete()
+    def test_connect(self):
+        bucket = self.back.connect()
+        self.assertEqual(bucket.path, BUCKET)
+        bucket = GCSBackend(bucket="wrong_address").connect()
+        self.assertIsNone(bucket)
 
     def test_upload_model(self):
         pass

@@ -33,7 +33,6 @@ def delete_model(args: argparse.Namespace, backend: StorageBackend, log: logging
         index["models"].pop(meta["model"])
     else:
         index["models"][meta["model"]].pop(meta["uuid"])
-    with backend.lock():
-        backend.delete_model(meta)
-        log.info("Updating the models index...")
-        backend.upload_index(index)
+    backend.delete_model(meta)
+    log.info("Updating the models index...")
+    backend.upload_index(index)

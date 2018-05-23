@@ -3,10 +3,8 @@ import json
 import logging
 import math
 import os
-import time
 import requests
 
-from contextlib import contextmanager
 from clint.textui import progress
 from google.cloud.exceptions import NotFound
 
@@ -67,7 +65,6 @@ class GCSBackend(StorageBackend):
         self._credentials = credentials
         self._log = logging.getLogger("gcs-backend")
         self._log.setLevel(log_level)
-        self._bucket = None
 
     @property
     def bucket_name(self):
@@ -87,15 +84,9 @@ class GCSBackend(StorageBackend):
                     buffer)
         return json.loads(buffer.getvalue().decode("utf8"))
 
-    @contextmanager
-    def lock(self):
-        """
-        This is the best we can do. It is impossible to acquire the lock reliably without
-        using any additional services. test-and-set is impossible to implement.
-        :return:
-        """
+    def connect(self):
         log = self._log
-        log.info("Locking the bucket...")
+        log.info("Connecting to the bucket...")
 
         # Client should be imported here because grpc starts threads during import
         # and if you call fork after that, a child process will be hang during exit
@@ -105,26 +96,10 @@ class GCSBackend(StorageBackend):
             client = Client.from_service_account_json(self.credentials)
         else:
             client = Client()
-        bucket = client.get_bucket(self.bucket_name)
-        self._bucket = bucket
-        sentinel = bucket.blob("index.lock")
-        try:
-            while sentinel.exists():
-                log.warning("Failed to acquire the lock, waiting...")
-                time.sleep(1)
-            sentinel.upload_from_string(b"")
-            # Several agents can get here. No test-and-set, sorry!
-            yield None
-        finally:
-            self._bucket = None
-            if sentinel is not None:
-                try:
-                    sentinel.delete()
-                except:  # nopep8
-                    pass
+        return client.lookup_bucket(self.bucket_name)
 
     def upload_model(self, path, meta, force):
-        bucket = self._bucket
+        bucket = self.connect()
         if bucket is None:
             raise TransactionRequiredError
         blob = bucket.blob("models/%s/%s.asdf" % (meta["model"], meta["uuid"]))
@@ -156,7 +131,7 @@ class GCSBackend(StorageBackend):
         return blob.public_url
 
     def upload_index(self, index):
-        bucket = self._bucket
+        bucket = self.connect()
         if bucket is None:
             raise TransactionRequiredError
         blob = bucket.blob(self.INDEX_FILE)
@@ -188,7 +163,7 @@ class GCSBackend(StorageBackend):
                 f.close()
 
     def delete_model(self, meta):
-        bucket = self._bucket
+        bucket = self.connect()
         if bucket is None:
             raise TransactionRequiredError
         blob_name = "models/%s/%s.asdf" % (meta["model"], meta["uuid"])

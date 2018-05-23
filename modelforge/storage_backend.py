@@ -23,12 +23,6 @@ class StorageBackend:
         """
         raise NotImplementedError
 
-    def lock(self):
-        """
-        Returns a scoped object which holds a lock.
-        """
-        raise NotImplementedError
-
     def upload_model(self, path: str, meta: dict, force: bool) -> str:
         """
         Puts the given file to the remote storage.

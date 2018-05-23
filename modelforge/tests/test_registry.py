@@ -16,7 +16,6 @@ from modelforge.tests.test_dump import captured_output
 @register_backend
 class FakeBackend(StorageBackend):
     NAME = "fake"
-    called_transaction = False
     uploaded_model = None
     uploaded_index = None
     default_index = {"models": {"docfreq": {
@@ -33,26 +32,21 @@ class FakeBackend(StorageBackend):
     def fetch_index(self) -> dict:
         return self.index
 
-    @contextmanager
-    def lock(self):
-        FakeBackend.called_transaction = True
-        yield None
-
     def upload_model(self, path: str, meta: dict, force: bool) -> str:
-        assert FakeBackend.called_transaction
         FakeBackend.uploaded_model = path, meta, force
         return "https:/yyy"
 
     def upload_index(self, index: dict) -> None:
-        assert FakeBackend.called_transaction
         FakeBackend.uploaded_index = index
 
     @classmethod
     def reset(cls):
-        cls.called_transaction = False
         cls.uploaded_model = None
         cls.uploaded_index = None
         cls.index = deepcopy(cls.default_index)
+
+    def connect(self):
+        pass
 
 
 class RegistryTests(unittest.TestCase):
@@ -129,7 +123,6 @@ class RegistryTests(unittest.TestCase):
 Uploaded as https:/yyy
 Updating the models index...
 """ % path)
-        self.assertTrue(FakeBackend.called_transaction)
         self.assertEqual(FakeBackend.uploaded_model[0], path)
         self.assertEqual(FakeBackend.uploaded_model[1], {
             "created_at": datetime(2017, 6, 19, 9, 59, 14, 766638),
@@ -164,7 +157,6 @@ Updating the models index...
 Uploaded as https:/yyy
 Updating the models index...
 """ % path)
-        self.assertTrue(FakeBackend.called_transaction)
         self.assertEqual(FakeBackend.uploaded_model[0], path)
         self.assertEqual(FakeBackend.uploaded_model[1], {
             "created_at": datetime(2017, 6, 19, 9, 59, 14, 766638),
@@ -210,14 +202,12 @@ Updating the models index...
         args = argparse.Namespace(backend=FakeBackend.NAME, args=None, force=True)
         with captured_output() as (_, _, log):
             initialize_registry(args)
-        self.assertTrue(FakeBackend.called_transaction)
         self.assertEqual(FakeBackend.uploaded_index, {"models": {}})
 
     def test_initialize_noforce(self):
         args = argparse.Namespace(backend=FakeBackend.NAME, args=None, force=False)
         with captured_output() as (_, _, log):
             initialize_registry(args)
-        self.assertFalse(FakeBackend.called_transaction)
         self.assertIsNone(FakeBackend.uploaded_index)
 
 
