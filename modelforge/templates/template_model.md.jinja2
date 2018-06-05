@@ -1,0 +1,35 @@
+# {{ base.name }}
+
+{{ details.description }}
+
+Example:
+
+```
+{{ details.code % ("\"" + base.uuid + "\"") }}
+```
+
+### References
+
+{% for ref in details.references %}
+* [{{ ref[0] }}]({{ ref[1] }})
+{% endfor %}
+
+|    |    |
+|:---|:---|
+| ID       | {{ base.uuid }} |
+| Uploaded | {{ base.created_at }} |
+| Version  | {{ base.version | join(".") }} |
+| File     | {{ base.url }} |
+| Size     | {{ size }} |
+{% for key, val in details.model.extra.items() | sort %}
+| {{ key }} | {{ val }} |
+{% endfor %}
+| License  | [{{ details.model.license[0] }}]({{ details.model.license[1] }}) |
+
+{% if details.model.dependencies %}
+### Dependencies
+
+    {% for dep in details.model.dependencies %}
+* [{{ dep }}]({{ links[dep] }})
+    {% endfor %}
+{% endif %}
