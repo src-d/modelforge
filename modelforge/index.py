@@ -37,10 +37,10 @@ class GitIndex:
         """
         self._log = logging.getLogger(type(self).__name__)
         self._log.setLevel(log_level)
-        if index_repo is None and config.DEFAULT_REPO:
-            index_repo = config.DEFAULT_REPO
+        if index_repo is None and config.INDEX_REPO:
+            index_repo = config.INDEX_REPO
         if cache is None:
-            cache = config.DEFAULT_CACHE
+            cache = config.CACHE_DIR
         parsed_url = urlparse(index_repo)
         if not parsed_url.scheme or \
                 parsed_url.scheme not in ("git", "git+ssh", "ssh", "http", "https"):
