@@ -71,7 +71,7 @@ class GitIndex:
     def fetch_index(self):
         os.makedirs(os.path.dirname(self.cached_repo), exist_ok=True)
         if not os.path.exists(self.cached_repo):
-            self._log.warning("Index not found, caching %s in %s", (self.repo, self.cached_repo))
+            self._log.warning("Index not found, caching %s in %s", self.repo, self.cached_repo)
             git.clone(self.remote_url, self.cached_repo, checkout=True)
         else:
             self._log.info("Index is cached")
