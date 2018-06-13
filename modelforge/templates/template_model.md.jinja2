@@ -1,35 +1,35 @@
-# {{ base.name }}
+# {{ model_type }}
 
-{{ details.description }}
+{{ meta.description }}
 
 Example:
 
 ```
-{{ details.code % ("\"" + base.uuid + "\"") }}
+{{ meta.code % ("\"" + model_uuid + "\"") }}
 ```
 
 ### References
 
-{% for ref in details.references %}
+{% for ref in meta.references %}
 * [{{ ref[0] }}]({{ ref[1] }})
 {% endfor %}
 
 |    |    |
 |:---|:---|
-| ID       | {{ base.uuid }} |
-| Uploaded | {{ base.created_at }} |
-| Version  | {{ base.version | join(".") }} |
-| File     | {{ base.url }} |
-| Size     | {{ size }} |
-{% for key, val in details.model.extra.items() | sort %}
+| ID       | {{ model_uuid }} |
+| Uploaded | {{ meta.created_at }} |
+| Version  | {{ meta.version | join(".") }} |
+| File     | {{ meta.url }} |
+| Size     | {{ meta.size }} |
+{% for key, val in meta.extra.items() | sort %}
 | {{ key }} | {{ val }} |
 {% endfor %}
-| License  | [{{ details.model.license[0] }}]({{ details.model.license[1] }}) |
+| License  | [{{ meta.license[0] }}]({{ meta.license[1] }}) |
 
-{% if details.model.dependencies %}
+{% if meta.dependencies %}
 ### Dependencies
 
-    {% for dep in details.model.dependencies %}
+    {% for dep in meta.dependencies %}
 * [{{ dep }}]({{ links[dep] }})
     {% endfor %}
 {% endif %}
