@@ -59,7 +59,7 @@ class GitIndex:
                              "credentials.")
         else:
             self.remote_url = index_repo
-        self.index = None
+        self.content = None
         try:
             self.fetch_index()
         except NotGitRepository as e:
@@ -68,8 +68,8 @@ class GitIndex:
             raise ValueError("Check SSH is configured, or connection is stable: %s" % e) from e
         except GitProtocolError as e:
             raise ValueError("%s: %s\nCheck your Git credentials." % (type(e), e))
-        self.models = self.index["models"]
-        self.meta = self.index["meta"]
+        self.models = self.content["models"]
+        self.meta = self.content["meta"]
 
     def fetch_index(self):
         os.makedirs(os.path.dirname(self.cached_repo), exist_ok=True)
@@ -82,7 +82,7 @@ class GitIndex:
                 self._log.info("Cached index is not up to date, pulling %s", self. repo)
                 git.pull(self.cached_repo, self.remote_url)
         with open(os.path.join(self.cached_repo, INDEX_FILE), encoding="utf-8") as _in:
-            self.index = json.load(_in)
+            self.content = json.load(_in)
 
     def remove_model(self, model_uuid: str) -> dict:
         model_type = None
@@ -152,7 +152,7 @@ class GitIndex:
                 os.remove(path)
             elif os.path.isdir(path):
                 shutil.rmtree(path)
-        self.index = {"models": {}, "meta": {}}
+        self.content = {"models": {}, "meta": {}}
 
     def upload_index(self, cmd: str, meta: dict):
         index = os.path.join(self.cached_repo, INDEX_FILE)
@@ -160,7 +160,7 @@ class GitIndex:
             os.remove(index)
         self._log.info("Writing the new index.json ...")
         with open(index, "w") as _out:
-            json.dump(self.index, _out)
+            json.dump(self.content, _out)
         # implementation of git add --all is pretty bad, changing directory is the easiest way
         os.chdir(self.cached_repo)
         git.add()

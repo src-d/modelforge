@@ -2,14 +2,16 @@ import argparse
 from datetime import datetime
 import unittest
 import uuid
+import os
 
-from modelforge.meta import generate_meta, extract_index_meta
+import modelforge.meta as met
+from modelforge.tests.fake_requests import FakeRequests
 
 
 class MetaTests(unittest.TestCase):
     def test_generate_meta(self):
         fake = argparse.Namespace(meta="surprise")
-        meta = generate_meta("first", (1, 0, 1), fake)
+        meta = met.generate_meta("first", (1, 0, 1), fake)
         self.assertIsInstance(meta, dict)
         self.assertEqual(meta["model"], "first")
         uuid.UUID(meta["uuid"])
@@ -18,8 +20,8 @@ class MetaTests(unittest.TestCase):
         self.assertIsInstance(meta["created_at"], datetime)
 
     def test_generate_meta_deps(self):
-        fake = {"surprise": 'me'}
-        meta = generate_meta("first", (1, 0, 1), fake)
+        fake = {"surprise": "me"}
+        meta = met.generate_meta("first", (1, 0, 1), fake)
         self.assertIsInstance(meta, dict)
         self.assertEqual(meta["model"], "first")
         uuid.UUID(meta["uuid"])
@@ -28,35 +30,52 @@ class MetaTests(unittest.TestCase):
         self.assertIsInstance(meta["created_at"], datetime)
 
     def test_extract_index_meta(self):
-        dt = datetime.now()
-        meta = {
-            "model": "zzz",
-            "version": [1, 0, 2],
+        self.maxDiff = None
+        dt = str(datetime.now())
+        base_meta = {
             "created_at": dt,
-            "uuid": None,
-            "dependencies": [{
-                "model": "xxx",
-                "version": [1, 0, 3],
-                "created_at": dt,
-                "uuid": "?",
-                "dependencies": []
-            }]
-        }
-        converted = extract_index_meta(meta, "https://xxx")
-        self.assertIsInstance(converted, dict)
-        self.assertNotIn("model", converted)
-        self.assertNotIn("uuid", converted)
-        self.assertEqual(converted["version"], [1, 0, 2])
-        self.assertEqual(converted["created_at"], str(dt))
-        self.assertEqual(converted["url"], "https://xxx")
-        self.assertIsInstance(converted["dependencies"], list)
-        self.assertEqual(len(converted["dependencies"]), 1)
-        dep = converted["dependencies"][0]
-        self.assertEqual(dep["model"], "xxx")
-        self.assertEqual(dep["version"], [1, 0, 3])
-        self.assertEqual(dep["created_at"], str(dt))
-        self.assertEqual(dep["uuid"], "?")
-        self.assertEqual(dep["dependencies"], [])
+            "model": "docfreq",
+            "uuid": "12345678-9abc-def0-1234-56789abcdef0",
+            "version": [1, 0, 2]}
+        extra_meta = {
+            "code": "readme_code %s",
+            "description": "readme_description",
+            "model": {
+                "code": "model_code %s",
+                "description": "model_description",
+                "dependencies": ["1e3da42a-28b6-4b33-94a2-a5671f4102f4"],
+                "extra": {"ex": "tra"},
+                "license": ["", "undecided"],
+                "parent": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
+                "references": [["any", "ref"]]
+            }}
+
+        def route(url):
+            self.assertEqual("https://xxx", url)
+            return b"content"
+
+        met.requests = FakeRequests(route)
+        model_meta = met.extract_model_meta(base_meta, extra_meta, "https://xxx")
+        self.assertIsInstance(model_meta, dict)
+        self.assertDictEqual(
+            model_meta, {"code": "model_code %s",
+                         "created_at": dt,
+                         "default": {"code": "readme_code %s",
+                                     "default": "12345678-9abc-def0-1234-56789abcdef0",
+                                     "description": "readme_description"},
+                         "dependencies": ["1e3da42a-28b6-4b33-94a2-a5671f4102f4"],
+                         "description": "model_description",
+                         "extra": {"ex": "tra"},
+                         "license": ["", "undecided"],
+                         "parent": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
+                         "references": [["any", "ref"]],
+                         "size": "7 Bytes",
+                         "url": "https://xxx",
+                         "version": [1, 0, 2]})
+
+
+def get_path(name):
+    return os.path.join(os.path.dirname(__file__), name)
 
 
 if __name__ == "__main__":

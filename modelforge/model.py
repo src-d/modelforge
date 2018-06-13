@@ -33,7 +33,6 @@ class Model:
     def __init__(self, **kwargs):
         """
         Initializes a new Model instance.
-
         :param kwargs: Everything is ignored except ``log_level``.
         """
         self._log = logging.getLogger(self.NAME)
@@ -42,11 +41,10 @@ class Model:
         self._meta = generate_meta(self.NAME, (1, 0, 0))
         self._meta["__init__"] = True
 
-    def load(self, source: Union[str, BinaryIO, "Model"]=None,
-             cache_dir: str=None, backend: StorageBackend=None) -> "Model":
+    def load(self, source: Union[str, BinaryIO, "Model"]=None, cache_dir: str=None,
+             backend: StorageBackend=None) -> "Model":
         """
         Initializes a new Model instance.
-
         :param source: UUID, file system path, file object or an URL; None means auto.
         :param cache_dir: The directory where to store the downloaded model.
         :param backend: Remote storage backend to use if ``source`` is a UUID or a URL.
@@ -83,12 +81,12 @@ class Model:
                     if backend is None:
                         raise ValueError("The backend must be set to load a UUID or the default "
                                          "model.")
-                    index = backend.fetch_index()
+                    index = backend.index.content
                     config = index["models"]
                     if self.NAME is not None:
-                        source = config[self.NAME][model_id]
                         if not is_uuid:
-                            source = config[self.NAME][source]
+                            model_id = index["meta"][self.NAME][model_id]
+                        source = config[self.NAME][model_id]
                     else:
                         if not is_uuid:
                             raise ValueError("File path, URL or UUID is needed.")
@@ -260,7 +258,6 @@ class Model:
              create_missing_dirs: bool=True) -> "Model":
         """
         Serializes the model to a file.
-
         :param output: path to the file or a file object.
         :param deps: the list of the dependencies.
         :param create_missing_dirs: create missing directories in output path if the output is a \
@@ -279,7 +276,6 @@ class Model:
     def _write_tree(self, tree: dict, output: Union[str, BinaryIO], file_mode: int=0o666) -> None:
         """
         Writes the model to disk.
-
         :param tree: The data dict - will be the ASDF tree.
         :param output: The output file path or a file object.
         :param file_mode: The output file's permissions.
@@ -296,7 +292,6 @@ class Model:
     def _generate_tree(self) -> dict:
         """
         Returns the tree to store in ASDF file.
-
         :return: None
         """
         raise NotImplementedError()
@@ -304,7 +299,6 @@ class Model:
     def _load_tree(self, tree: dict) -> None:
         """
         Attaches the needed data from the tree.
-
         :param tree: asdf file tree.
         :return: None
         """
@@ -315,7 +309,6 @@ def merge_strings(list_of_strings: Union[List[str], Tuple[str]]) -> dict:
     """
     Packs the list of strings into two arrays: the concatenated chars and the
     individual string lengths. :func:`split_strings()` does the inverse.
-
     :param list_of_strings: The :class:`tuple` or :class:`list` of :class:`str`-s \
                             or :class:`bytes`-s to pack.
     :return: :class:`dict` with "strings" and "lengths" \
@@ -360,7 +353,6 @@ def split_strings(subtree: dict) -> List[str]:
     """
     Produces the list of strings from the dictionary with concatenated chars
     and lengths. Opposite to :func:`merge_strings()`.
-
     :param subtree: The dict with "strings" and "lengths".
     :return: :class:`list` of :class:`str`-s or :class:`bytes`.
     """
@@ -380,7 +372,6 @@ def disassemble_sparse_matrix(matrix: scipy.sparse.spmatrix) -> dict:
     """
     Transforms a scipy.sparse matrix into the serializable collection of
     :class:`numpy.ndarray`-s. :func:`assemble_sparse_matrix()` does the inverse.
-
     :param matrix: :mod:`scipy.sparse` matrix; csr, csc and coo formats are \
                    supported.
     :return: :class:`dict` with "shape", "format" and "data" - :class:`tuple` \
@@ -405,7 +396,6 @@ def assemble_sparse_matrix(subtree: dict) -> scipy.sparse.spmatrix:
     Transforms a dictionary with "shape", "format" and "data" into the
     :mod:`scipy.sparse` matrix.
     Opposite to :func:`disassemble_sparse_matrix()`.
-
     :param subtree: :class:`dict` which describes the :mod:`scipy.sparse` \
                     matrix.
     :return: :mod:`scipy.sparse` matrix of the specified format.

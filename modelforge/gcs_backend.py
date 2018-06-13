@@ -8,10 +8,9 @@ import requests
 from clint.textui import progress
 from google.cloud.exceptions import NotFound
 
+from modelforge.index import GitIndex
 from modelforge.progress_bar import progress_bar
 from modelforge.storage_backend import StorageBackend, TransactionRequiredError
-
-INDEX_FILE = "index.json"  #: Models repository index file name.
 
 
 class Tracker:
@@ -47,16 +46,18 @@ class Tracker:
 class GCSBackend(StorageBackend):
     NAME = "gcs"
     DEFAULT_CHUNK_SIZE = 65536
-    INDEX_FILE = "index.json"
 
-    def __init__(self, bucket: str, credentials: str="", log_level: int=logging.DEBUG):
+    def __init__(self, bucket: str, credentials: str="", index: GitIndex=None,
+                 log_level: int=logging.DEBUG):
         """
         Initializes a new instance of :class:`GCSBackend`.
 
         :param bucket: The name of the Google Cloud Storage bucket to use.
+        :param credentials: The path to the credentials for the Google Cloud Storage bucket.
+        :param index: GitIndex where the index is maintained.
         :param log_level: The logging level of this instance.
         """
-        super().__init__()
+        super().__init__(index)
         if not isinstance(bucket, str):
             raise TypeError("bucket must be a str")
         self._bucket_name = bucket
@@ -76,13 +77,6 @@ class GCSBackend(StorageBackend):
 
     def fetch_model(self, source: str, file: str) -> None:
         self._fetch(source, file)
-
-    def fetch_index(self) -> dict:
-        buffer = io.BytesIO()
-        self._fetch("https://storage.googleapis.com/%s/%s?ignoreCache=1" %
-                    (self.bucket_name, self.INDEX_FILE),
-                    buffer)
-        return json.loads(buffer.getvalue().decode("utf8"))
 
     def connect(self):
         log = self._log

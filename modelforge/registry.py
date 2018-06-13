@@ -1,23 +1,26 @@
-import argparse
-import logging
 import os
+import json
+import logging
+import argparse
 
 from dateutil.parser import parse as parse_datetime
 
-from modelforge.meta import extract_index_meta
-from modelforge.model import Model
 from modelforge.models import GenericModel
-from modelforge.storage_backend import StorageBackend
+from modelforge.storage_backend import StorageBackend, ModelExistsError
 from modelforge.backends import supply_backend
+from modelforge.index import GitIndex
+from modelforge.meta import extract_model_meta
 
 
 @supply_backend
 def publish_model(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
     Pushes the model to Google Cloud Storage and updates the index file.
-
-    :param args: :class:`argparse.Namespace` with "model", "backend", "args", "force" and \
-                 "update_default".
+    :param args: :class:`argparse.Namespace` with "model", "backend", "args", "force", "meta"
+                        "update_default", "username", "password", "remote_repo", "template_model",
+                        "template_readme" and "log_level"
+    :param backend: Backend which is responsible for working with model files.
+    :param log: Logger supplied by supply_backend
     :return: None if successful, 1 otherwise.
     """
     path = os.path.abspath(args.model)
@@ -29,58 +32,90 @@ def publish_model(args: argparse.Namespace, backend: StorageBackend, log: loggin
     except Exception as e:
         log.critical("Failed to load the model: %s: %s" % (type(e).__name__, e))
         return 1
-    meta = model.meta
-    model_url = backend.upload_model(path, meta, args.force)
+    base_meta = model.meta
+    try:
+        model_url = backend.upload_model(path, base_meta, args.force)
+    except ModelExistsError:
+        return 1
     log.info("Uploaded as %s", model_url)
+    with open(os.path.join(args.meta), encoding="utf-8") as _in:
+        extra_meta = json.load(_in)
+    meta = extract_model_meta(base_meta, extra_meta, model_url)
     log.info("Updating the models index...")
-    index = backend.fetch_index()
-    index["models"].setdefault(meta["model"], {})[meta["uuid"]] = \
-        extract_index_meta(meta, model_url)
-    if args.update_default:
-        index["models"][meta["model"]][Model.DEFAULT_NAME] = meta["uuid"]
-    backend.upload_index(index)
+    template_model = backend.index.load_template(args.template_model)
+    backend.index.add_model(base_meta["model"], base_meta["uuid"], meta, template_model,
+                            args.update_default)
+    template_readme = backend.index.load_template(args.template_readme)
+    backend.index.update_readme(template_readme)
+    backend.index.upload_index("add", base_meta)
+    log.info("Successfully published.")
 
 
-@supply_backend
-def list_models(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
+def list_models(args: argparse.Namespace):
     """
     Outputs the list of known models in the registry.
-
-    :param args: :class:`argparse.Namespace` with "backend" and "args".
+    :param args: :class:`argparse.Namespace` with "username", "password", "remote_repo" and
+                        "log_level"
     :return: None
     """
-    index = backend.fetch_index()
-    for key, val in index["models"].items():
-        print(key)
-        default = None
-        for mid, meta in val.items():
-            if mid == "default":
-                default = meta
-                break
-        for mid, meta in sorted(
-                [m for m in val.items() if m[1] != default],
-                key=lambda m: parse_datetime(m[1]["created_at"]),
-                reverse=True):
-            print("  %s %s" % ("*" if default == mid else " ", mid),
-                  meta["created_at"])
+    git_index = GitIndex(index_repo=args.index_repo, username=args.username,
+                         password=args.password, cache=args.cache, log_level=args.log_level)
+    for model_type, models in git_index.models.items():
+        print(model_type)
+        default = git_index.meta[model_type]["default"]
+        for uuid, model in sorted(models.items(),
+                                  key=lambda m: parse_datetime(m[1]["created_at"]),
+                                  reverse=True):
+            print("  %s %s" % ("*" if default == uuid else " ", uuid),
+                  model["created_at"])
 
 
 @supply_backend
 def initialize_registry(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
-    Initialize the registry - list and publish will fail otherwise.
-
-    :param args: :class:`argparse.Namespace` with "backend", "args" and "force".
+    Initialize the registry and the index.
+    :param args: :class:`argparse.Namespace` with "backend", "args", "force" and "log_level".
+    :param backend: Backend which is responsible for working with model files.
+    :param log: Logger supplied by supply_backend
     :return: None
     """
 
-    try:
-        backend.fetch_index()
-        if not args.force:
-            log.warning("Registry is already initialized")
-            return
-    except FileNotFoundError:
-        pass
-    # The lock is not needed here, but upload_index() will raise otherwise
-    backend.upload_index({"models": {}})
+    # TODO: add  backend.initialize_backend(args.force) (Next split)
+    log.info("Deleting content of index ...")
+    backend.index.initialize_index()
+    backend.index.upload_index("initilialize", {})
     log.info("Successfully initialized")
+
+
+@supply_backend(optional=True)
+def dump_model(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
+    """
+    Prints the information about the model.
+    :param args: :class:`argparse.Namespace` with "input", "backend", "args", "username",
+                        "password", "remote_repo" and "log_level".
+    :param backend: Backend which is responsible for working with model files.
+    :param log: Logger supplied by supply_backend
+    :return: None
+    """
+    print(GenericModel(args.input, backend=backend))
+
+
+@supply_backend
+def delete_model(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
+    """
+    Deletes a model.
+    :param args: :class:`argparse.Namespace` with "input", "backend", "args", "meta",
+                        "update_default", "username", "password", "remote_repo",
+                        "template_model", "template_readme" and "log_level".
+    :param backend: Backend which is responsible for working with model files.
+    :param log: Logger supplied by supply_backend
+    :return: None
+    """
+
+    meta = backend.index.remove_model(args.input)
+    backend.delete_model(meta)
+    log.info("Updating the models index...")
+    template_readme = backend.index.load_template(args.template_readme)
+    backend.index.update_readme(template_readme)
+    backend.index.upload_index("delete", meta)
+    log.info("Successfully deleted.")

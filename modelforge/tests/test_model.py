@@ -1,25 +1,41 @@
 import datetime
 import inspect
-from io import BytesIO
 import os
 import pickle
 import tempfile
 import unittest
-
+import shutil
 import asdf
 import numpy
+from io import BytesIO
 from scipy.sparse import csr_matrix
 
+import modelforge.gcs_backend as back
+import modelforge.index as ind
+import modelforge.tests.fake_dulwich as fake_git
+
 from modelforge import configuration
-import modelforge.gcs_backend
 from modelforge.meta import generate_meta
 from modelforge.backends import create_backend
-from modelforge.gcs_backend import GCSBackend
 from modelforge.model import merge_strings, split_strings, assemble_sparse_matrix, \
     disassemble_sparse_matrix, Model
-from modelforge.models import GenericModel
+from modelforge.models import GenericModel, register_model
 from modelforge.tests.fake_requests import FakeRequests
-from modelforge.tests.test_dump import TestModel
+
+
+@register_model
+class FakeDocfreqModel(Model):
+
+    NAME = "docfreq"
+
+    def _load_tree(self, tree):
+        self.docs = tree["docs"]
+
+    def dump(self):
+        return str(self.docs)
+
+    def _generate_tree(self) -> dict:
+        pass
 
 
 class Model1(Model):
@@ -84,15 +100,57 @@ class Model8(Model):
         return "model8"
 
 
+class FakeIndex:
+    def __init__(self, index):
+        self.index = index
+
+
 def get_path(name):
     return os.path.join(os.path.dirname(__file__), name)
 
 
 class ModelTests(unittest.TestCase):
     DOCFREQ_PATH = "test.asdf"
+    cached_path = "/tmp/modelforge-test-cache"
+    default_url = "https://github.com/src-d/models"
+    templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+    default_index = {
+        "models": {
+            "docfreq": {
+                "f64bacd4-67fb-4c64-8382-399a8e7db52a": {
+                    "url": "https://xxx",
+                    "created_at": "13:00",
+                    "code": "model_code %s",
+                    "description": "model_description"},
+                "1e3da42a-28b6-4b33-94a2-a5671f4102f4": {
+                    "url": "https://xxx",
+                    "created_at": "13:00",
+                    "code": "%s",
+                    "description": ""
+                }}},
+        "meta": {
+            "docfreq": {
+                "code": "readme_code %s",
+                "description": "readme_description",
+                "default": "f64bacd4-67fb-4c64-8382-399a8e7db52a"}}}
 
     def setUp(self):
-        self.backend = create_backend()
+        ind.git = fake_git
+        ind.Repo = fake_git.FakeRepo
+        fake_git.FakeRepo.reset(self.default_index)
+        self.backend = create_backend(
+            git_index=ind.GitIndex(index_repo=self.default_url, cache=self.cached_path))
+
+    def clear(self):
+        if os.path.exists(self.cached_path):
+            shutil.rmtree(os.path.expanduser(self.cached_path))
+
+    def tearDown(self):
+        self.clear()
+        from dulwich.repo import Repo
+        ind.Repo = Repo
+        from dulwich import porcelain as git
+        ind.git = git
 
     def test_file(self):
         model = GenericModel(source=get_path(self.DOCFREQ_PATH))
@@ -105,19 +163,24 @@ class ModelTests(unittest.TestCase):
         finally:
             configuration.VENDOR = vendor
 
+    def test_error(self):
+        success = True
+        try:
+            model = GenericModel(source="f64bacd4-67fb-4c64-8382-399a8e7db52a")
+            success = False
+        except ValueError:
+            pass
+        self.assertTrue(success)
+
     def test_id(self):
         def route(url):
-            if GCSBackend.INDEX_FILE in url:
-                return '{"models": {"docfreq": {' \
-                       '"f64bacd4-67fb-4c64-8382-399a8e7db52a": ' \
-                       '{"url": "https://xxx"}}}}'.encode()
             self.assertEqual("https://xxx", url)
             with open(get_path(self.DOCFREQ_PATH), "rb") as fin:
                 return fin.read()
 
-        modelforge.gcs_backend.requests = FakeRequests(route)
-        model = GenericModel(source="f64bacd4-67fb-4c64-8382-399a8e7db52a",
-                             backend=self.backend)
+        back.requests = FakeRequests(route)
+        model = GenericModel(
+            source="f64bacd4-67fb-4c64-8382-399a8e7db52a", backend=self.backend)
         self._validate_meta(model)
 
     def test_url(self):
@@ -126,7 +189,7 @@ class ModelTests(unittest.TestCase):
             with open(get_path(self.DOCFREQ_PATH), "rb") as fin:
                 return fin.read()
 
-        modelforge.gcs_backend.requests = FakeRequests(route)
+        back.requests = FakeRequests(route)
         model = GenericModel(source="https://xxx", backend=self.backend)
         self._validate_meta(model)
 
@@ -135,18 +198,12 @@ class ModelTests(unittest.TestCase):
             NAME = "docfreq"
 
         def route(url):
-            if GCSBackend.INDEX_FILE in url:
-                return '{"models": {"docfreq": {' \
-                       '"f64bacd4-67fb-4c64-8382-399a8e7db52a": ' \
-                       '{"url": "https://xxx"}, ' \
-                       '"default": "f64bacd4-67fb-4c64-8382-399a8e7db52a"' \
-                       '}}}'.encode()
             self.assertEqual("https://xxx", url)
             with open(get_path(self.DOCFREQ_PATH), "rb") as fin:
                 return fin.read()
 
-        modelforge.gcs_backend.requests = FakeRequests(route)
-        model = FakeModel(backend=create_backend())
+        back.requests = FakeRequests(route)
+        model = FakeModel(backend=self.backend)
         self._validate_meta(model)
 
     def test_init_with_model(self):
@@ -158,6 +215,7 @@ class ModelTests(unittest.TestCase):
             Model2().load(source=model1)
 
     def test_repr_str(self):
+        self.maxDiff = None
         path = get_path(self.DOCFREQ_PATH)
         model = Model1().load(source=path)
         repr1 = repr(model)
@@ -173,10 +231,10 @@ class ModelTests(unittest.TestCase):
         model = Model3().load(source=path)
         str2 = str(model)
         self.assertEqual(len(str2.split("\n")), 5)
-        model = TestModel().load(source=path)
+        model = FakeDocfreqModel().load(source=path)
         repr2 = repr(model)
-        self.assertEqual("modelforge.tests.test_dump.TestModel().load(source=\"%s\")"
-                         % path, repr2)
+        self.assertEqual("[%s].FakeDocfreqModel().load(source=\"%s\")"
+                         % (os.path.realpath(__file__), path), repr2)
 
     def test_repr_main(self):
         path = get_path(self.DOCFREQ_PATH)

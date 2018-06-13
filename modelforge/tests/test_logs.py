@@ -2,7 +2,7 @@ import logging
 import unittest
 
 from modelforge.logs import setup_logging
-from modelforge.tests.test_dump import captured_output
+from modelforge.tests.capture import captured_output
 
 
 class LogTests(unittest.TestCase):
