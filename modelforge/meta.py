@@ -1,5 +1,7 @@
-from datetime import datetime
 import uuid
+import humanize
+import requests
+from datetime import datetime
 
 
 ARRAY_COMPRESSION = "zlib"
@@ -25,27 +27,23 @@ def generate_meta(name: str, version: tuple, *deps) -> dict:
     }
 
 
-def _extract_index_meta_dependency(meta):
-    return {
-        "model": meta["model"],
-        "uuid": meta["uuid"],
-        "dependencies": [_extract_index_meta_dependency(m)
-                         for m in meta["dependencies"]],
-        "version": meta["version"],
-        "created_at": str(meta["created_at"]),
-    }
-
-
-def extract_index_meta(meta: dict, model_url: str) -> dict:
+def extract_model_meta(base_meta: dict, extra_meta: dict, model_url: str) -> dict:
     """
-    Converts the metadata tree into a dict which is suitable for index.json.
+    Merges the metadata from the backend and the extra metadata into a dict which is suitable for
+    index.json.
 
-    :param meta: tree["meta"] :class:`dict`.
+    :param base_meta: tree["meta"] :class:`dict` containing data from the backend
+    :param extra_meta: dict containing data from the user, similar to `template_meta.json`
     :param model_url: public URL of the model
     :return: converted dict.
     """
-    result = _extract_index_meta_dependency(meta)
-    del result["model"]
-    del result["uuid"]
-    result["url"] = model_url
-    return result
+    default_meta = {"default": base_meta["uuid"], "code": extra_meta["code"],
+                    "description": extra_meta["description"]}
+    del base_meta["model"]
+    del base_meta["uuid"]
+    response = requests.get(model_url, stream=True)
+    base_meta["size"] = humanize.naturalsize(int(response.headers["content-length"]))
+    base_meta["url"] = model_url
+    base_meta["default"] = default_meta
+    base_meta.update(extra_meta["model"])
+    return base_meta

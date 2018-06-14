@@ -3,6 +3,7 @@
   "description": "",
   "model": {
     "dependencies": [],
+    "code": "%s",
     "description": "",
     "extra": {},
     "license": ["", "undecided"],

@@ -1,66 +1,123 @@
 import argparse
 import logging
 import unittest
+import shutil
+import os
 
-from modelforge import backends
+from modelforge.tests import fake_dulwich as fake_git
+from modelforge import backends as back
+import modelforge.index as ind
 
 
-class BackendsTests(unittest.TestCase):
+class BackendTests(unittest.TestCase):
+    cached_path = "/tmp/modelforge-test-cache"
+    default_url = "https://github.com/src-d/models"
+    default_index = {
+        "models": {
+            "docfreq": {
+                "12345678-9abc-def0-1234-56789abcdef0": {
+                    "url": "https://xxx",
+                    "created_at": "13:00",
+                    "code": "model_code %s",
+                    "description": "model_description"},
+                "1e3da42a-28b6-4b33-94a2-a5671f4102f4": {
+                    "url": "https://xxx",
+                    "created_at": "13:00",
+                    "code": "%s",
+                    "description": ""
+                }}},
+        "meta": {
+            "docfreq": {
+                "code": "readme_code %s",
+                "description": "readme_description",
+                "default": "12345678-9abc-def0-1234-56789abcdef0"}
+        }}
+
+    def clear(self):
+        if os.path.exists(self.cached_path):
+            shutil.rmtree(os.path.expanduser(self.cached_path))
+
+    def setUp(self):
+        ind.git = fake_git
+        ind.Repo = fake_git.FakeRepo
+        fake_git.FakeRepo.reset(self.default_index)
+
+    def tearDown(self):
+        self.clear()
+        from dulwich.repo import Repo
+        ind.Repo = Repo
+        from dulwich import porcelain as git
+        ind.git = git
+
     def test_register_backend(self):
         class Foo:
             pass
 
         with self.assertRaises(TypeError):
-            backends.register_backend(Foo)
+            back.register_backend(Foo)
 
-        class Bar(backends.StorageBackend):
+        class Bar(back.StorageBackend):
             NAME = "Bar"
 
-        backends.register_backend(Bar)
-        self.assertEqual(Bar, backends.__registry__["Bar"])
+        back.register_backend(Bar)
+        self.assertEqual(Bar, back.__registry__["Bar"])
 
     def test_create_backend_invalid_args(self):
-        backup = backends.config.BACKEND_ARGS
-        backends.config.BACKEND_ARGS = "lalala"
-
+        backup = back.config.BACKEND_ARGS
+        back.config.BACKEND_ARGS = "lalala"
+        success = True
         try:
-            with self.assertRaises(ValueError):
-                backends.create_backend("Bar")
-        finally:
-            backends.config.BACKEND_ARGS = backup
+            back.create_backend("Bar")
+            success = False
+        except ValueError:
+            pass
+        self.assertTrue(success)
+        back.config.BACKEND_ARGS = backup
+        backup = back.config.BACKEND_ARGS
+        back.config.BACKEND_ARGS = ""
 
-        backup = backends.config.BACKEND_ARGS
-        backends.config.BACKEND_ARGS = ""
-
-        class Bar(backends.StorageBackend):
+        class Bar(back.StorageBackend):
             NAME = "Bar"
-        backends.register_backend(Bar)
-
+        back.register_backend(Bar)
+        git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
         try:
-            self.assertIsInstance(backends.create_backend("Bar"), Bar)
+            self.assertIsInstance(back.create_backend("Bar", git_index), Bar)
         finally:
-            backends.config.BACKEND_ARGS = backup
+            back.config.BACKEND_ARGS = backup
 
     def test_create_backend_noexc(self):
-        backup = backends.config.BACKEND_ARGS
-        backends.config.BACKEND_ARGS = "lalala"
+        backup = back.config.BACKEND_ARGS
+        back.config.BACKEND_ARGS = "lalala"
         logger = logging.getLogger()
-
+        git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
         try:
-            self.assertIsNone(backends.create_backend_noexc(logger, "Bar"))
+            self.assertIsNone(back.create_backend_noexc(logger, name="Bar", git_index=git_index))
         finally:
-            backends.config.BACKEND_ARGS = backup
+            back.config.BACKEND_ARGS = backup
 
-        self.assertIsNone(backends.create_backend_noexc(logger, "Bar!!!"))
+        self.assertIsNone(back.create_backend_noexc(logger, name="Bar!!!", git_index=git_index))
 
     def test_supply_backend(self):
 
-        @backends.supply_backend(optional=True)
+        @back.supply_backend(optional=True)
         def test_optional(args, backend, log):
             return backend
 
-        self.assertIsNone(test_optional(argparse.Namespace()))
-        self.assertEqual(test_optional(argparse.Namespace(backend="none", args="")), 1)
+        self.assertIsNone(test_optional(argparse.Namespace(
+            index_repo=self.default_url, username="", password="", cache=self.cached_path,
+            log_level="WARNING", template_model="", template_readme="")))
+        shutil.rmtree(self.cached_path)
+        self.assertEqual(test_optional(argparse.Namespace(
+            input=input, backend="none", args="", index_repo=self.default_url, username="",
+            password="", cache=self.cached_path, log_level="WARNING", template_model="",
+            template_readme="")), 1)
+        shutil.rmtree(self.cached_path)
+
+    def _get_args(self):
+        return argparse.Namespace(
+            input=input, backend="none", args="", index_repo=self.default_url, username="",
+            password="", cache=self.cached_path, log_level="WARNING", template_model="",
+            template_readme="")
 
 
 if __name__ == "__main__":
