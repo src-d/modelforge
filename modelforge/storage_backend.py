@@ -1,3 +1,5 @@
+from typing import Union, BinaryIO
+
 from modelforge.index import GitIndex
 
 
@@ -11,21 +13,21 @@ class StorageBackend:
         """
         self._index = index
 
-    def fetch_model(self, source: str, file: str) -> None:
-        """
-        Downloads the model from the remote storage.
-
-        :param source: URL to download.
-        :param file: PAth to the local file to write.
-        :return: None
-        """
-        raise NotImplementedError
-
     @property
     def index(self) -> GitIndex:
         if self._index:
             return self._index
         raise AttributeError("No index was provided.")
+
+    def reset(self, force: bool):
+        """
+        Initialize backend.
+        :param force: If backend is not empty, force must be set to True.
+        :return: None
+        :raises BackendRequiredError: If supplied bucket is unusable.
+        :raises ExistingBackendError: If backend is already initialized, and force set to False.
+        """
+        raise NotImplementedError
 
     def upload_model(self, path: str, meta: dict, force: bool) -> str:
         """
@@ -35,17 +37,20 @@ class StorageBackend:
         :param meta: Metadata of the model.
         :param force: Overwrite an existing model.
         :return: URL of the uploaded model.
-        :raises TransactionRequiredError: If called not in a lock scope.
+        :raises BackendRequiredError: If supplied bucket is unusable.
+        :raises ModelAlreadyExistsError: If model already exists and no forcing.
         """
         raise NotImplementedError
 
-    def upload_index(self, index: dict) -> None:
+    def fetch_model(self, source: str, file: Union[str, BinaryIO]) -> None:
         """
-        Updates the index on the remote storage.
+        Downloads the model from the remote storage.
 
-        :param index: The new index.
+        :param source: URL to download.
+        :param file: Path to the local file to write or open file object.
         :return: None
-        :raises TransactionRequiredError: If called not in a lock scope.
+        :raises BackendRequiredError: If supplied bucket is unusable.
+        :raises NonExistingModelError: If model does not exist.
         """
         raise NotImplementedError
 
@@ -54,19 +59,27 @@ class StorageBackend:
         Deletes the model associated to the metadata dictionary from the remote storage.
 
         :param meta: Metadata of the model.
-        :raises TransactionRequiredError: If called not in a lock scope.
+        :raises BackendRequiredError: If supplied bucket is unusable.
+        :raises NonExistingModelError: If model does not exist.
         """
         raise NotImplementedError
 
 
-class TransactionRequiredError(Exception):
+class ExistingBackendError(Exception):
     """
-    User tried to change the index and did not acquire a lock.
+    User tried to initialize a backend that already was initialized without forcing.
     """
     pass
 
 
-class ModelExistsError(Exception):
+class BackendRequiredError(Exception):
+    """
+    User tried to publish or delete a model, but the supplied bucket parameters were incorrect.
+    """
+    pass
+
+
+class ModelAlreadyExistsError(Exception):
     """
     User tried to publish a model that already exists without forcing.
     """

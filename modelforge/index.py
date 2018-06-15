@@ -9,9 +9,9 @@ from dulwich.repo import Repo
 from dulwich.errors import HangupException, GitProtocolError, NotGitRepository
 from urllib.parse import urlparse
 
+import modelforge.configuration as config
 
 INDEX_FILE = "index.json"  #: Models repository index file name.
-DEFAULT_CACHE = os.path.expanduser("~/.cache")
 REMOTE_URL = "%s://%s%s/%s"  #: Remote repo url
 
 
@@ -23,8 +23,8 @@ class GitIndex:
         "add": "Add {model}/{uuid}",
     }
 
-    def __init__(self, index_repo: str= "", username: str= "", password: str= "",
-                 cache: str=DEFAULT_CACHE, log_level: int=logging.INFO):
+    def __init__(self, index_repo: str="", username: str= "", password: str= "", cache: str="",
+                 log_level: int=logging.INFO):
         """
         Initializes a new instance of :class:`GitIndex`.
 
@@ -37,14 +37,21 @@ class GitIndex:
         """
         self._log = logging.getLogger(type(self).__name__)
         self._log.setLevel(log_level)
+        if index_repo is None and config.DEFAULT_REPO:
+            index_repo = config.DEFAULT_REPO
+        if cache is None:
+            cache = config.DEFAULT_CACHE
         parsed_url = urlparse(index_repo)
         if not parsed_url.scheme or \
                 parsed_url.scheme not in ("git", "git+ssh", "ssh", "http", "https"):
-            raise ValueError("Parsed url does not contain a valid protocol.")
+            self._log.critical("Parsed url does not contain a valid protocol.")
+            raise ValueError
         if not parsed_url.netloc:
-            raise ValueError("Parsed url does not contain a valid domain.")
+            self._log.critical("Parsed url does not contain a valid domain.")
+            raise ValueError
         if not parsed_url.path:
-            raise ValueError("Parsed url does not contain a valid repository path.")
+            self._log.critical("Parsed url does not contain a valid repository path.")
+            raise ValueError
         self.repo = parsed_url.path
         if self.repo.startswith("/"):
             self.repo = self.repo[1:]
@@ -55,21 +62,25 @@ class GitIndex:
             auth = username + ":" + password + "@"
             self.remote_url = REMOTE_URL % (parsed_url.scheme, auth, parsed_url.netloc, self.repo)
         elif username or password:
-            raise ValueError("Both username and password must be supplied to access git with "
-                             "credentials.")
+            self._log.critical("Both username and password must be supplied to access git with "
+                               "credentials.")
+            raise ValueError
         else:
             self.remote_url = index_repo
-        self.content = None
+        self.contents = None
         try:
             self.fetch_index()
         except NotGitRepository as e:
-            raise ValueError("Repository does not exist: %s" % e) from e
+            self._log.critical("Repository does not exist: %s" % e)
+            raise ValueError
         except HangupException as e:
-            raise ValueError("Check SSH is configured, or connection is stable: %s" % e) from e
+            self._log.critical("Check SSH is configured, or connection is stable: %s" % e)
+            raise ValueError
         except GitProtocolError as e:
-            raise ValueError("%s: %s\nCheck your Git credentials." % (type(e), e))
-        self.models = self.content["models"]
-        self.meta = self.content["meta"]
+            self._log.critical("%s: %s\nCheck your Git credentials." % (type(e), e))
+            raise ValueError
+        self.models = self.contents["models"]
+        self.meta = self.contents["meta"]
 
     def fetch_index(self):
         os.makedirs(os.path.dirname(self.cached_repo), exist_ok=True)
@@ -82,7 +93,7 @@ class GitIndex:
                 self._log.info("Cached index is not up to date, pulling %s", self. repo)
                 git.pull(self.cached_repo, self.remote_url)
         with open(os.path.join(self.cached_repo, INDEX_FILE), encoding="utf-8") as _in:
-            self.content = json.load(_in)
+            self.contents = json.load(_in)
 
     def remove_model(self, model_uuid: str) -> dict:
         model_type = None
@@ -92,7 +103,8 @@ class GitIndex:
                 model_type = key
                 break
         if model_type is None:
-            raise ValueError("Model not found, aborted.")
+            self._log.error("Model not found, aborted.")
+            raise ValueError
         model_directory = os.path.join(self.cached_repo, model_type)
         model_node = self.models[model_type]
         meta_node = self.meta[model_type]
@@ -152,7 +164,7 @@ class GitIndex:
                 os.remove(path)
             elif os.path.isdir(path):
                 shutil.rmtree(path)
-        self.content = {"models": {}, "meta": {}}
+        self.contents = {"models": {}, "meta": {}}
 
     def upload_index(self, cmd: str, meta: dict):
         index = os.path.join(self.cached_repo, INDEX_FILE)
@@ -160,7 +172,7 @@ class GitIndex:
             os.remove(index)
         self._log.info("Writing the new index.json ...")
         with open(index, "w") as _out:
-            json.dump(self.content, _out)
+            json.dump(self.contents, _out)
         # implementation of git add --all is pretty bad, changing directory is the easiest way
         os.chdir(self.cached_repo)
         git.add()
@@ -169,15 +181,18 @@ class GitIndex:
         # TODO: change when https://github.com/dulwich/dulwich/issues/631 gets addressed
         git.push(self.cached_repo, self.remote_url, b"master")
         if self._are_local_and_remote_heads_different():
-            raise ValueError("Push has failed")
+            self._log.error("Push has failed")
+            raise ValueError
 
     def load_template(self, template: str) -> Template:
         env = dict(trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=False)
         jinja2_ext = ".jinja2"
         if not template.endswith(jinja2_ext):
-            raise ValueError("Template file name must end with %s" % jinja2_ext)
+            self._log.error("Template file name must end with %s" % jinja2_ext)
+            raise ValueError
         if not template[:-len(jinja2_ext)].endswith(".md"):
-            raise ValueError("Template file should be a Markdown file.")
+            self._log.error("Template file should be a Markdown file.")
+            raise ValueError
         with open(template, encoding="utf-8") as fin:
             template_obj = Template(fin.read(), **env)
         template_obj.filename = template

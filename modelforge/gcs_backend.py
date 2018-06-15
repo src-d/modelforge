@@ -1,16 +1,17 @@
 import io
-import json
 import logging
 import math
 import os
 import requests
 
+from typing import BinaryIO, Union
 from clint.textui import progress
 from google.cloud.exceptions import NotFound
 
 from modelforge.index import GitIndex
 from modelforge.progress_bar import progress_bar
-from modelforge.storage_backend import StorageBackend, TransactionRequiredError
+from modelforge.storage_backend import StorageBackend, ExistingBackendError, \
+    ModelAlreadyExistsError, BackendRequiredError
 
 
 class Tracker:
@@ -18,7 +19,7 @@ class Tracker:
     Wrapper around a bytes buffer which follows the file position and updates
     the console progressbar mimicking a file object.
     """
-    def __init__(self, data, logger):
+    def __init__(self, data: memoryview, logger: logging.Logger):
         self._file = io.BytesIO(data)
         self._size = len(data)
         self._enabled = logger.isEnabledFor(logging.INFO)
@@ -27,7 +28,7 @@ class Tracker:
         else:
             logger.debug("Progress indication is not enabled")
 
-    def read(self, size=None):
+    def read(self, size: int=None):
         pos_before = self._file.tell()
         result = self._file.read(size)
         if self._enabled:
@@ -75,31 +76,41 @@ class GCSBackend(StorageBackend):
     def credentials(self):
         return self._credentials
 
-    def fetch_model(self, source: str, file: str) -> None:
-        self._fetch(source, file)
-
-    def connect(self):
-        log = self._log
-        log.info("Connecting to the bucket...")
-
+    def create_client(self):
         # Client should be imported here because grpc starts threads during import
         # and if you call fork after that, a child process will be hang during exit
         from google.cloud.storage import Client
-
         if self.credentials:
             client = Client.from_service_account_json(self.credentials)
         else:
             client = Client()
+        return client
+
+    def connect(self):
+        log = self._log
+        log.info("Connecting to the bucket...")
+        client = self.create_client()
         return client.lookup_bucket(self.bucket_name)
 
-    def upload_model(self, path, meta, force):
+    def reset(self, force):
+        client = self.create_client()
+        bucket = client.lookup_bucket(self.bucket_name)
+        if bucket is not None:
+            if not force:
+                self._log.error("Bucket already exists, aborting.")
+                raise ExistingBackendError
+            self._log.info("Bucket already exists, deleting all content.")
+            bucket.delete(force, client)
+        client.create_bucket(self.bucket_name)
+
+    def upload_model(self, path: str, meta: dict, force: bool):
         bucket = self.connect()
         if bucket is None:
-            raise TransactionRequiredError
+            raise BackendRequiredError
         blob = bucket.blob("models/%s/%s.asdf" % (meta["model"], meta["uuid"]))
         if blob.exists() and not force:
             self._log.error("Model %s already exists, aborted.", meta["uuid"])
-            return 1
+            raise ModelAlreadyExistsError
         self._log.info("Uploading %s from %s...", meta["model"], os.path.abspath(path))
 
         def tracker(data):
@@ -124,23 +135,19 @@ class GCSBackend(StorageBackend):
         blob.make_public()
         return blob.public_url
 
-    def upload_index(self, index):
-        bucket = self.connect()
-        if bucket is None:
-            raise TransactionRequiredError
-        blob = bucket.blob(self.INDEX_FILE)
-        blob.cache_control = "no-cache"
-        blob.upload_from_string(json.dumps(index, indent=4, sort_keys=True))
-        blob.make_public()
-
-    def _fetch(self, url, where, chunk_size=DEFAULT_CHUNK_SIZE):
-        self._log.info("Fetching %s...", url)
-        r = requests.get(url, stream=True)
-        if isinstance(where, str):
-            os.makedirs(os.path.dirname(where), exist_ok=True)
-            f = open(where, "wb")
+    def fetch_model(self, source: str, file: Union[str, BinaryIO],
+                    chunk_size: int=DEFAULT_CHUNK_SIZE) -> None:
+        self._log.info("Fetching %s...", source)
+        r = requests.get(source, stream=True)
+        if r.status_code != 200:
+            self._log.error(
+                "An error occurred while fetching the model, with code %s" % r.status_code)
+            raise ValueError
+        if isinstance(file, str):
+            os.makedirs(os.path.dirname(file), exist_ok=True)
+            f = open(file, "wb")
         else:
-            f = where
+            f = file
         try:
             total_length = int(r.headers.get("content-length"))
             num_chunks = math.ceil(total_length / chunk_size)
@@ -153,13 +160,13 @@ class GCSBackend(StorageBackend):
                     if chunk:
                         f.write(chunk)
         finally:
-            if isinstance(where, str):
+            if isinstance(file, str):
                 f.close()
 
-    def delete_model(self, meta):
+    def delete_model(self, meta: dict):
         bucket = self.connect()
         if bucket is None:
-            raise TransactionRequiredError
+            raise BackendRequiredError
         blob_name = "models/%s/%s.asdf" % (meta["model"], meta["uuid"])
         self._log.info(blob_name)
         try:

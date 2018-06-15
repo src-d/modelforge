@@ -7,6 +7,7 @@ VENDOR = os.getenv("MODELFORGE_VENDOR", None)
 BACKEND = os.getenv("MODELFORGE_BACKEND", None)
 BACKEND_ARGS = os.getenv("MODELFORGE_BACKEND_ARGS", "")
 DEFAULT_REPO = os.getenv("MODELFORGE_DEFAULT_REPO", "")
+DEFAULT_CACHE = os.getenv("MODELFORGE_DEFAULT_CACHE", os.path.expanduser("~/.cache"))
 
 OVERRIDE_FILE = "modelforgecfg.py"
 
