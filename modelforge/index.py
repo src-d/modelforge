@@ -155,7 +155,7 @@ class GitIndex:
             fout.write(template_readme.render(models=self.models, meta=self.meta, links=links))
         self._log.info("Updated %s", readme)
 
-    def initialize_index(self):
+    def reset(self):
         for filename in os.listdir(self.cached_repo):
             if filename.startswith(".git"):
                 continue
@@ -166,7 +166,7 @@ class GitIndex:
                 shutil.rmtree(path)
         self.contents = {"models": {}, "meta": {}}
 
-    def upload_index(self, cmd: str, meta: dict):
+    def upload(self, cmd: str, meta: dict):
         index = os.path.join(self.cached_repo, INDEX_FILE)
         if os.path.exists(index):
             os.remove(index)
