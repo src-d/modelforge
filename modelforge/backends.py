@@ -52,9 +52,13 @@ def supply_backend(optional=False):
         @wraps(func)
         def wrapped_supply_backend(args):
             log = logging.getLogger(func.__name__)
-            git_index = GitIndex(index_repo=args.index_repo, username=args.username,
-                                 password=args.password, cache=args.cache,
-                                 log_level=args.log_level)
+            try:
+                git_index = GitIndex(index_repo=args.index_repo, username=args.username,
+                                     password=args.password, cache=args.cache,
+                                     log_level=args.log_level)
+            except ValueError:
+                return 1
+
             if real_optional and not getattr(args, "backend", False):
                 backend = None
             else:

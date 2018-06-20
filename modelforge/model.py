@@ -81,7 +81,7 @@ class Model:
                     if backend is None:
                         raise ValueError("The backend must be set to load a UUID or the default "
                                          "model.")
-                    index = backend.index.content
+                    index = backend.index.contents
                     config = index["models"]
                     if self.NAME is not None:
                         if not is_uuid:

@@ -6,6 +6,12 @@ class FakeRequest:
     def headers(self):
         return {"content-length": len(self.content)}
 
+    @property
+    def status_code(self):
+        if self.content == 404:
+            return 404
+        return 200
+
     def iter_content(self, chunk_size):
         return [self.content[i:i+chunk_size]
                 for i in range(0, len(self.content), chunk_size)]

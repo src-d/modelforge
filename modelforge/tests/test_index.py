@@ -57,7 +57,7 @@ class GitIndexTests(unittest.TestCase):
         self.assertListEqual(sorted(os.listdir("/tmp/modelforge-test-cache/src-d/models/docfreq")),
                              ["12345678-9abc-def0-1234-56789abcdef0.md",
                               "1e3da42a-28b6-4b33-94a2-a5671f4102f4.md"])
-        self.assertEqual(git_index.content, self.default_index)
+        self.assertEqual(git_index.contents, self.default_index)
         self.assertEqual(git_index.models, self.default_index["models"])
         self.assertEqual(git_index.meta, self.default_index["meta"])
 
@@ -282,7 +282,7 @@ class GitIndexTests(unittest.TestCase):
             _out.write("nothing")
         git_index.initialize_index()
         empty_index = {"models": {}, "meta": {}}
-        self.assertDictEqual(empty_index, git_index.content)
+        self.assertDictEqual(empty_index, git_index.contents)
         self.assertTrue(os.path.exists(git_index.cached_repo))
         self.assertListEqual(os.listdir(git_index.cached_repo), [".gitignore"])
 

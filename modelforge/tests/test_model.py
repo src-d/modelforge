@@ -206,6 +206,20 @@ class ModelTests(unittest.TestCase):
         model = FakeModel(backend=self.backend)
         self._validate_meta(model)
 
+    def test_bad_code(self):
+        def route(url):
+            self.assertEqual("https://bad_code", url)
+            return 404
+
+        back.requests = FakeRequests(route)
+        success = True
+        try:
+            GenericModel(source="https://bad_code", backend=self.backend)
+            success = False
+        except ValueError:
+            pass
+        self.assertTrue(success)
+
     def test_init_with_model(self):
         model1 = Model1().load(source=get_path(self.DOCFREQ_PATH))
         # init with correct model

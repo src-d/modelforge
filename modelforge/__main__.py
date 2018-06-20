@@ -4,7 +4,6 @@ import sys
 import os
 
 from modelforge.logs import setup_logging
-from modelforge.index import DEFAULT_CACHE
 from modelforge.registry import publish_model, list_models, initialize_registry, dump_model, \
     delete_model
 
@@ -29,8 +28,9 @@ def main():
                        help="Username for the Git repository with the index.")
         p.add_argument("--password", default="",
                        help="Password for the Git repository with the index")
-        p.add_argument("--index-repo", default="", help="Url of the remote Git repository.")
-        p.add_argument("--cache", default=DEFAULT_CACHE,
+        p.add_argument("--index-repo", default=None,
+                       help="Url of the remote Git repository.")
+        p.add_argument("--cache", default=None,
                        help="Path to the folder where the Git repository will be cached.")
 
     def add_templates_args(p):
@@ -43,14 +43,22 @@ def main():
             default=os.path.join(os.path.dirname(__file__), "templates/template_readme.md.jinja2"),
             help="Path to the jinja2 template used in the index for the readme.")
 
+    # ------------------------------------------------------------------------
+    init_parser = subparsers.add_parser("init", help="Initialize the registry.")
+    init_parser.set_defaults(handler=initialize_registry)
+    init_parser.add_argument("-f", "--force", action="store_true",
+                             help="Destructively initialize the registry.")
+    add_index_args(init_parser)
+    add_backend_args(init_parser)
+    # ------------------------------------------------------------------------
     dump_parser = subparsers.add_parser(
         "dump", help="Print a brief information about the model to stdout.")
     dump_parser.set_defaults(handler=dump_model)
     dump_parser.add_argument(
         "input", help="Path to the model file, URL or UUID.")
-    add_backend_args(dump_parser)
     add_index_args(dump_parser)
-
+    add_backend_args(dump_parser)
+    # ------------------------------------------------------------------------
     publish_parser = subparsers.add_parser(
         "publish", help="Upload the model and update the registry.")
     publish_parser.set_defaults(handler=publish_model)
@@ -63,30 +71,23 @@ def main():
                                 help="Set this model as the default one.")
     publish_parser.add_argument("-f", "--force", action="store_true",
                                 help="Overwrite existing models.")
-    add_backend_args(publish_parser)
     add_index_args(publish_parser)
+    add_backend_args(publish_parser)
     add_templates_args(publish_parser)
-
+    # ------------------------------------------------------------------------
     list_parser = subparsers.add_parser(
         "list", help="Lists all the models in the registry.")
     list_parser.set_defaults(handler=list_models)
     add_index_args(list_parser)
-
-    init_parser = subparsers.add_parser("init", help="Initialize the registry.")
-    init_parser.set_defaults(handler=initialize_registry)
-    init_parser.add_argument("-f", "--force", action="store_true",
-                             help="Destructively initialize the registry.")
-    add_backend_args(init_parser)
-    add_index_args(init_parser)
-
+    # ------------------------------------------------------------------------
     delete_parser = subparsers.add_parser("delete", help="Delete a model.")
     delete_parser.set_defaults(handler=delete_model)
     delete_parser.add_argument(
         "input", help="UUID of the model to be deleted.")
-    add_backend_args(delete_parser)
     add_index_args(delete_parser)
+    add_backend_args(delete_parser)
     add_templates_args(delete_parser)
-
+    # ------------------------------------------------------------------------
     args = parser.parse_args()
     args.log_level = logging._nameToLevel[args.log_level]
     setup_logging(args.log_level)
