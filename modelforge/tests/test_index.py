@@ -280,7 +280,7 @@ class GitIndexTests(unittest.TestCase):
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
         with open(os.path.join(git_index.cached_repo, ".gitignore"), "w") as _out:
             _out.write("nothing")
-        git_index.initialize_index()
+        git_index.reset()
         empty_index = {"models": {}, "meta": {}}
         self.assertDictEqual(empty_index, git_index.contents)
         self.assertTrue(os.path.exists(git_index.cached_repo))
@@ -288,21 +288,21 @@ class GitIndexTests(unittest.TestCase):
 
     def test_upload_add(self):
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
-        git_index.upload_index("add", {"model": "a", "uuid": "b"})
+        git_index.upload("add", {"model": "a", "uuid": "b"})
         self.assertTrue(fake_git.FakeRepo.added)
         self.assertEqual(fake_git.FakeRepo.message, "Add a/b")
         self.assertTrue(fake_git.FakeRepo.pushed)
 
     def test_upload_delete(self):
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
-        git_index.upload_index("delete", {"model": "a", "uuid": "b"})
+        git_index.upload("delete", {"model": "a", "uuid": "b"})
         self.assertTrue(fake_git.FakeRepo.added)
         self.assertEqual(fake_git.FakeRepo.message, "Delete a/b")
         self.assertTrue(fake_git.FakeRepo.pushed)
 
     def test_upload_init(self):
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
-        git_index.upload_index("initilialize", {})
+        git_index.upload("initilialize", {})
         self.assertTrue(fake_git.FakeRepo.added)
         self.assertEqual(fake_git.FakeRepo.message, "Initialize a new Modelforge index")
         self.assertTrue(fake_git.FakeRepo.pushed)
@@ -312,7 +312,7 @@ class GitIndexTests(unittest.TestCase):
         fake_git.FakeRepo.reset(self.default_index, head="1")
         succeeded = True
         try:
-            git_index.upload_index("initilialize", {})
+            git_index.upload("initilialize", {})
             succeeded = False
         except ValueError:
             pass

@@ -27,10 +27,10 @@ def initialize_registry(args: argparse.Namespace, backend: StorageBackend, log: 
     except ExistingBackendError:
         return 1
 
-    log.info("Deleting content of index ...")
-    backend.index.initialize_index()
+    log.info("Resetting the index ...")
+    backend.index.reset()
     try:
-        backend.index.upload_index("initilialize", {})
+        backend.index.upload("initialize", {})
     except ValueError:
         return 1
     log.info("Successfully initialized")
@@ -96,7 +96,7 @@ def publish_model(args: argparse.Namespace, backend: StorageBackend, log: loggin
                             args.update_default)
     backend.index.update_readme(template_readme)
     try:
-        backend.index.upload_index("add", base_meta)
+        backend.index.upload("add", base_meta)
     except ValueError:  # TODO: replace with PorcelainError, see related TODO in index.py:181
         return 1
     log.info("Successfully published.")
@@ -144,7 +144,7 @@ def delete_model(args: argparse.Namespace, backend: StorageBackend, log: logging
     backend.delete_model(meta)
     log.info("Updating the models index...")
     try:
-        backend.index.upload_index("delete", meta)
+        backend.index.upload("delete", meta)
     except ValueError:  # TODO: replace with PorcelainError
         return 1
     log.info("Successfully deleted.")
