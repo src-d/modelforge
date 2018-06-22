@@ -75,62 +75,34 @@ class GitIndexTests(unittest.TestCase):
         self.assertTrue(fake_git.FakeRepo.pulled)
 
     def test_init_errors(self):
-        succeeded = True
-        try:
+        with self.assertRaises(ValueError):
             ind.GitIndex(index_repo="no_protocol", cache=self.cached_path)
-            succeeded = False
-        except ValueError:
-            pass
-        self.assertTrue(succeeded)
-        try:
+
+        with self.assertRaises(ValueError):
             ind.GitIndex(index_repo="badprotocol://github.com", cache=self.cached_path)
-            succeeded = False
-        except ValueError:
-            pass
-        self.assertTrue(succeeded)
-        try:
+
+        with self.assertRaises(ValueError):
             ind.GitIndex(index_repo="http:///nodomain", cache=self.cached_path)
-            succeeded = False
-        except ValueError:
-            pass
-        self.assertTrue(succeeded)
-        try:
+
+        with self.assertRaises(ValueError):
             ind.GitIndex(index_repo="http://nopath.com", cache=self.cached_path)
-            succeeded = False
-        except ValueError:
-            pass
-        self.assertTrue(succeeded)
-        try:
+
+        with self.assertRaises(ValueError):
             ind.GitIndex(index_repo="http://github.com/not-git-repo", cache=self.cached_path)
-            succeeded = False
-        except ValueError:
-            pass
-        self.assertTrue(succeeded)
-        try:
+
+        with self.assertRaises(ValueError):
             ind.GitIndex(index_repo="http://github.com/bad-ssh", cache=self.cached_path)
-            succeeded = False
-        except ValueError:
-            pass
-        self.assertTrue(succeeded)
-        try:
+
+        with self.assertRaises(ValueError):
             ind.GitIndex(index_repo="http://github.com/bad-credentials", cache=self.cached_path)
-            succeeded = False
-        except ValueError:
-            self.assertTrue(succeeded)
-        try:
+
+        with self.assertRaises(ValueError):
             ind.GitIndex(index_repo=self.default_url, username="no-password",
                          cache=self.cached_path)
-            succeeded = False
-        except ValueError:
-            pass
-        self.assertTrue(succeeded)
-        try:
+
+        with self.assertRaises(ValueError):
             ind.GitIndex(index_repo=self.default_url, password="no-username",
                          cache=self.cached_path)
-            succeeded = False
-        except ValueError:
-            pass
-        self.assertTrue(succeeded)
 
     def test_init_variants(self):
         git_index = ind.GitIndex(
@@ -186,12 +158,9 @@ class GitIndexTests(unittest.TestCase):
 
     def test_remove(self):
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
-        success = False
-        try:
+        with self.assertRaises(ValueError):
             git_index.remove_model("fake_uuid")
-        except ValueError:
-            success = True
-        self.assertTrue(success)
+
         git_index.remove_model("1e3da42a-28b6-4b33-94a2-a5671f4102f4")
         self.assertNotIn("1e3da42a-28b6-4b33-94a2-a5671f4102f4",
                          git_index.models["docfreq"])
@@ -205,7 +174,8 @@ class GitIndexTests(unittest.TestCase):
         git_index.remove_model("12345678-9abc-def0-1234-56789abcdef0")
         self.assertNotIn("docfreq", git_index.models)
         self.assertNotIn("docfreq", git_index.meta)
-        self.assertFalse(os.path.exists("/tmp/modelforge-test-cache/src-d/models/docfreq/"))
+        self.assertFalse(os.path.exists("/tmp/modelforge-test-cache/src-d/models/docfreq/"
+                                        "12345678-9abc-def0-1234-56789abcdef0"))
         self.clear()
         fake_git.FakeRepo.reset(self.default_index)
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
@@ -284,7 +254,7 @@ class GitIndexTests(unittest.TestCase):
         empty_index = {"models": {}, "meta": {}}
         self.assertDictEqual(empty_index, git_index.contents)
         self.assertTrue(os.path.exists(git_index.cached_repo))
-        self.assertListEqual(os.listdir(git_index.cached_repo), [".gitignore"])
+        self.assertListEqual(sorted(os.listdir(git_index.cached_repo)), [".gitignore", "docfreq"])
 
     def test_upload_add(self):
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
@@ -302,7 +272,7 @@ class GitIndexTests(unittest.TestCase):
 
     def test_upload_init(self):
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
-        git_index.upload("initilialize", {})
+        git_index.upload("reset", {})
         self.assertTrue(fake_git.FakeRepo.added)
         self.assertEqual(fake_git.FakeRepo.message, "Initialize a new Modelforge index")
         self.assertTrue(fake_git.FakeRepo.pushed)
@@ -312,7 +282,7 @@ class GitIndexTests(unittest.TestCase):
         fake_git.FakeRepo.reset(self.default_index, head="1")
         succeeded = True
         try:
-            git_index.upload("initilialize", {})
+            git_index.upload("reset", {})
             succeeded = False
         except ValueError:
             pass
@@ -320,19 +290,12 @@ class GitIndexTests(unittest.TestCase):
 
     def test_template(self):
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
-        succeeded = True
-        try:
+        with self.assertRaises(ValueError):
             git_index.load_template("fake.jinj4")
-            succeeded = False
-        except ValueError:
-            pass
-        self.assertTrue(succeeded)
-        try:
+
+        with self.assertRaises(ValueError):
             git_index.load_template("fake.jinja2")
-            succeeded = False
-        except ValueError:
-            pass
-        self.assertTrue(succeeded)
+
         template_path = os.path.join(self.templates_dir, "template_readme.md.jinja2")
         template = git_index.load_template(template_path)
         self.assertEqual(template.render(meta={}, models={}, links={}),

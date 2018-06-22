@@ -1,6 +1,5 @@
 import os
 import json
-import shutil
 import logging
 
 from jinja2 import Template
@@ -18,7 +17,7 @@ REMOTE_URL = "%s://%s%s/%s"  #: Remote repo url
 class GitIndex:
 
     COMMIT_MESSAGES = {
-        "initilialize": "Initialize a new Modelforge index",
+        "reset": "Initialize a new Modelforge index",
         "delete": "Delete {model}/{uuid}",
         "add": "Add {model}/{uuid}",
     }
@@ -111,13 +110,14 @@ class GitIndex:
         if len(model_node) == 1:
             self.models.pop(model_type)
             self.meta.pop(model_type)
-            shutil.rmtree(model_directory)
+            paths = [os.path.join(model_directory, model) for model in os.listdir(model_directory)]
         else:
             if meta_node["default"] == model_uuid:
                 self._log.info("Model is set as default, removing from index ...")
                 meta_node["default"] = ""
             model_node.pop(model_uuid)
-            os.remove(os.path.join(model_directory, model_uuid + ".md"))
+            paths = [os.path.join(model_directory, model_uuid + ".md")]
+        git.remove(self.cached_repo, paths)
         return {"model": model_type, "uuid": model_uuid}
 
     def add_model(self, model_type: str, model_uuid: str, meta: dict,
@@ -139,6 +139,7 @@ class GitIndex:
         with open(model, "w") as fout:
             fout.write(template_model.render(model_type=model_type, model_uuid=model_uuid,
                                              meta=model_meta, links=links))
+        git.add(self.cached_repo, [model])
         self._log.info("Added %s", model)
 
     def update_readme(self, template_readme: Template):
@@ -153,17 +154,21 @@ class GitIndex:
             self._log.info(self.meta)
             self._log.info(self.models)
             fout.write(template_readme.render(models=self.models, meta=self.meta, links=links))
+        git.add(self.cached_repo, [readme])
         self._log.info("Updated %s", readme)
 
     def reset(self):
+        paths = []
         for filename in os.listdir(self.cached_repo):
             if filename.startswith(".git"):
                 continue
             path = os.path.join(self.cached_repo, filename)
             if os.path.isfile(path):
-                os.remove(path)
+                paths.append(path)
             elif os.path.isdir(path):
-                shutil.rmtree(path)
+                for model in os.listdir(path):
+                    paths.append(os.path.join(path, model))
+        git.remove(self.cached_repo, paths)
         self.contents = {"models": {}, "meta": {}}
 
     def upload(self, cmd: str, meta: dict):
@@ -173,10 +178,8 @@ class GitIndex:
         self._log.info("Writing the new index.json ...")
         with open(index, "w") as _out:
             json.dump(self.contents, _out)
-        # implementation of git add --all is pretty bad, changing directory is the easiest way
-        os.chdir(self.cached_repo)
-        git.add()
-        git.commit(message=self.COMMIT_MESSAGES[cmd].format(**meta))
+        git.add(self.cached_repo, [index])
+        git.commit(self.cached_repo, message=self.COMMIT_MESSAGES[cmd].format(**meta))
         self._log.info("Pushing the updated index ...")
         # TODO: change when https://github.com/dulwich/dulwich/issues/631 gets addressed
         git.push(self.cached_repo, self.remote_url, b"master")
@@ -200,6 +203,6 @@ class GitIndex:
         return template_obj
 
     def _are_local_and_remote_heads_different(self):
-        local_head = Repo(self.cached_repo).head
+        local_head = Repo(self.cached_repo).head()
         remote_head = git.ls_remote(self.remote_url)[b"HEAD"]
         return local_head != remote_head
