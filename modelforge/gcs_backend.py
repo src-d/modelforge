@@ -100,8 +100,11 @@ class GCSBackend(StorageBackend):
                 self._log.error("Bucket already exists, aborting.")
                 raise ExistingBackendError
             self._log.info("Bucket already exists, deleting all content.")
-            bucket.delete(force, client)
-        client.create_bucket(self.bucket_name)
+            for blob in bucket.list_blobs():
+                self._log.info("Deleting %s ..." % blob.name)
+                bucket.delete_blob(blob)
+        else:
+            client.create_bucket(self.bucket_name)
 
     def upload_model(self, path: str, meta: dict, force: bool):
         bucket = self.connect()
