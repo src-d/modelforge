@@ -30,7 +30,7 @@ def initialize_registry(args: argparse.Namespace, backend: StorageBackend, log: 
     log.info("Resetting the index ...")
     backend.index.reset()
     try:
-        backend.index.upload("initialize", {})
+        backend.index.upload("reset", {})
     except ValueError:
         return 1
     log.info("Successfully initialized")

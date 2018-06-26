@@ -31,7 +31,7 @@ def pull(remote_url, cached_repo):
     FakeRepo.pulled = True
 
 
-def add():
+def add(cached_repo, paths):
     FakeRepo.added = True
 
 
@@ -39,12 +39,17 @@ def ls_remote(remote_url):
     return {b"HEAD": "0"}
 
 
-def commit(message):
+def commit(cached_repo, message):
     FakeRepo.message = message
 
 
 def push(cached_repo, remote_url, branch):
     FakeRepo.pushed = True
+
+
+def remove(cached_repo, paths):
+    for path in paths:
+        os.remove(path)
 
 
 class FakeRepo:
@@ -61,7 +66,6 @@ class FakeRepo:
     def __init__(self, cached_repo):
         pass
 
-    @property
     def head(self):
         return self._head
 
