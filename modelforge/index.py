@@ -151,8 +151,6 @@ class GitIndex:
             for model_uuid in model_uuids:
                 links[model_type][model_uuid] = os.path.join("/", model_type, "%s.md" % model_uuid)
         with open(readme, "w") as fout:
-            self._log.info(self.meta)
-            self._log.info(self.models)
             fout.write(template_readme.render(models=self.models, meta=self.meta, links=links))
         git.add(self.cached_repo, [readme])
         self._log.info("Updated %s", readme)

@@ -85,6 +85,7 @@ def publish_model(args: argparse.Namespace, backend: StorageBackend, log: loggin
     log.info("Uploaded as %s", model_url)
     with open(os.path.join(args.meta), encoding="utf-8") as _in:
         extra_meta = json.load(_in)
+    model_type, model_uuid = base_meta["model"], base_meta["uuid"]
     meta = extract_model_meta(base_meta, extra_meta, model_url)
     log.info("Updating the models index...")
     try:
@@ -92,11 +93,10 @@ def publish_model(args: argparse.Namespace, backend: StorageBackend, log: loggin
         template_readme = backend.index.load_template(args.template_readme)
     except ValueError:
         return 1
-    backend.index.add_model(base_meta["model"], base_meta["uuid"], meta, template_model,
-                            args.update_default)
+    backend.index.add_model(model_type, model_uuid, meta, template_model, args.update_default)
     backend.index.update_readme(template_readme)
     try:
-        backend.index.upload("add", base_meta)
+        backend.index.upload("add", {"model": model_type, "uuid": model_uuid})
     except ValueError:  # TODO: replace with PorcelainError, see related TODO in index.py:181
         return 1
     log.info("Successfully published.")
