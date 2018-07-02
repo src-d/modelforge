@@ -37,13 +37,14 @@ def extract_model_meta(base_meta: dict, extra_meta: dict, model_url: str) -> dic
     :param model_url: public URL of the model
     :return: converted dict.
     """
-    default_meta = {"default": base_meta["uuid"], "code": extra_meta["code"],
-                    "description": extra_meta["description"]}
+    meta = {"default": {"default": base_meta["uuid"], "code": extra_meta["code"],
+                        "description": extra_meta["description"]}}
     del base_meta["model"]
     del base_meta["uuid"]
+    meta["model"] = base_meta
+    meta["model"].update(extra_meta["model"])
     response = requests.get(model_url, stream=True)
-    base_meta["size"] = humanize.naturalsize(int(response.headers["content-length"]))
-    base_meta["url"] = model_url
-    base_meta["default"] = default_meta
-    base_meta.update(extra_meta["model"])
-    return base_meta
+    meta["model"]["size"] = humanize.naturalsize(int(response.headers["content-length"]))
+    meta["model"]["url"] = model_url
+    meta["model"]["created_at"] = str(meta["model"]["created_at"])
+    return meta

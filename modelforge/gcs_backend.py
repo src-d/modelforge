@@ -102,7 +102,7 @@ class GCSBackend(StorageBackend):
             self._log.info("Bucket already exists, deleting all content.")
             for blob in bucket.list_blobs():
                 self._log.info("Deleting %s ..." % blob.name)
-                bucket.delete_blob(blob)
+                bucket.delete_blob(blob.name)
         else:
             client.create_bucket(self.bucket_name)
 

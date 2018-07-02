@@ -58,20 +58,21 @@ class MetaTests(unittest.TestCase):
         model_meta = met.extract_model_meta(base_meta, extra_meta, "https://xxx")
         self.assertIsInstance(model_meta, dict)
         self.assertDictEqual(
-            model_meta, {"code": "model_code %s",
-                         "created_at": dt,
-                         "default": {"code": "readme_code %s",
-                                     "default": "12345678-9abc-def0-1234-56789abcdef0",
-                                     "description": "readme_description"},
-                         "dependencies": ["1e3da42a-28b6-4b33-94a2-a5671f4102f4"],
-                         "description": "model_description",
-                         "extra": {"ex": "tra"},
-                         "license": ["", "undecided"],
-                         "parent": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
-                         "references": [["any", "ref"]],
-                         "size": "7 Bytes",
-                         "url": "https://xxx",
-                         "version": [1, 0, 2]})
+            model_meta, {
+                "default": {"code": "readme_code %s",
+                            "default": "12345678-9abc-def0-1234-56789abcdef0",
+                            "description": "readme_description"},
+                "model": {"created_at": dt,
+                          "code": "model_code %s",
+                          "description": "model_description",
+                          "dependencies": ["1e3da42a-28b6-4b33-94a2-a5671f4102f4"],
+                          "extra": {"ex": "tra"},
+                          "license": ["", "undecided"],
+                          "parent": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
+                          "references": [["any", "ref"]],
+                          "size": "7 Bytes",
+                          "url": "https://xxx",
+                          "version": [1, 0, 2], }})
 
 
 def get_path(name):
