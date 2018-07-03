@@ -19,6 +19,7 @@ class MainTests(unittest.TestCase):
             self.assertTrue(hasattr(args, "cache"))
             self.assertTrue(hasattr(args, "username"))
             self.assertTrue(hasattr(args, "password"))
+            self.assertTrue(hasattr(args, "signoff"))
 
         def template_args(args):
             self.assertTrue(hasattr(args, "template_model"))

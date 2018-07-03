@@ -8,6 +8,7 @@ BACKEND = os.getenv("MODELFORGE_BACKEND", None)
 BACKEND_ARGS = os.getenv("MODELFORGE_BACKEND_ARGS", "")
 INDEX_REPO = os.getenv("MODELFORGE_INDEX_REPO", "")
 CACHE_DIR = os.getenv("MODELFORGE_CACHE_DIR", os.path.expanduser("~/.cache"))
+ALWAYS_SIGNOFF = os.getenv("MODELFORGE_ALWAYS_SIGNOFF", False)
 
 OVERRIDE_FILE = "modelforgecfg.py"
 

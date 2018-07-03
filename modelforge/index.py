@@ -4,6 +4,7 @@ import logging
 
 from jinja2 import Template
 from dulwich import porcelain as git
+from dulwich.config import ConfigFile
 from dulwich.repo import Repo
 from dulwich.errors import HangupException, GitProtocolError, NotGitRepository
 from urllib.parse import urlparse
@@ -18,20 +19,21 @@ class GitIndex:
         "delete": "Delete {model}/{uuid}",
         "add": "Add {model}/{uuid}",
     }
+    DCO_MESSAGE = "\n\nSigned-off-by: {name} <{email}>"
     INDEX_FILE = "index.json"  #: Models repository index file name.
     REMOTE_URL = "%s://%s%s/%s"  #: Remote repo url
 
     def __init__(self, index_repo: str="", username: str= "", password: str= "", cache: str="",
-                 init: bool=False, log_level: int=logging.INFO):
+                 signoff: bool=False, init: bool=False, log_level: int=logging.INFO):
         """
         Initializes a new instance of :class:`GitIndex`.
-
         :param index_repo: Remote repository's address where the index is maintained
         :param username: Username for credentials if protocol is not ssh
         :param password: Password for credentials if protocol is not ssh
         :param cache: Path to the folder where the repo will be cached, defaults to ~/.cache
-        :param log_level: The logging level of this instance.
+        :param signoff: Whether to add a DCO to the commit message
         :param init: Whether the registry is being initialized (allows to catch some errors)
+        :param log_level: The logging level of this instance.
         :raise ValueError: If missing credential, incorrect url, incorrect credentials or index
                JSON file is not found/unreadable.
         """
@@ -41,6 +43,9 @@ class GitIndex:
             index_repo = config.INDEX_REPO
         if cache is None:
             cache = config.CACHE_DIR
+        self.signoff = signoff
+        if signoff is None:
+            self.signoff = config.ALWAYS_SIGNOFF
         parsed_url = urlparse(index_repo)
         if not parsed_url.scheme or \
                 parsed_url.scheme not in ("git", "git+ssh", "ssh", "http", "https"):
@@ -185,7 +190,26 @@ class GitIndex:
         with open(index, "w") as _out:
             json.dump(self.contents, _out)
         git.add(self.cached_repo, [index])
-        git.commit(self.cached_repo, message=self.COMMIT_MESSAGES[cmd].format(**meta))
+        message = self.COMMIT_MESSAGES[cmd].format(**meta)
+        if self.signoff:
+            global_conf_path = os.path.expanduser("~/.gitconfig")
+            if os.path.exists(global_conf_path):
+                with open(global_conf_path, "br") as _in:
+                    conf = ConfigFile.from_file(_in)
+                    try:
+                        name = conf.get(b"user", b"name").decode()
+                        email = conf.get(b"user", b"email").decode()
+                        message += self.DCO_MESSAGE.format(name=name, email=email)
+                    except KeyError:
+                        self._log.warning(
+                            "Did not find name or email in %s, committing without DCO.",
+                            global_conf_path)
+            else:
+                self._log.warning("Global git configuration file %s does not exist, "
+                                  "committing without DCO.", global_conf_path)
+        else:
+            self._log.info("Committing the index without DCO.")
+        git.commit(self.cached_repo, message=message)
         self._log.info("Pushing the updated index ...")
         # TODO: change when https://github.com/dulwich/dulwich/issues/631 gets addressed
         git.push(self.cached_repo, self.remote_url, b"master")

@@ -60,6 +60,7 @@ class GitIndexTests(unittest.TestCase):
         self.assertEqual(git_index.contents, self.default_index)
         self.assertEqual(git_index.models, self.default_index["models"])
         self.assertEqual(git_index.meta, self.default_index["meta"])
+        self.assertFalse(git_index.signoff)
 
     def test_init_fetch(self):
         ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
@@ -161,6 +162,10 @@ class GitIndexTests(unittest.TestCase):
             index_repo="https://github.com/src-d/models", cache=cached_path)
         self.assertEqual(git_index.repo, "src-d/models")
         self.assertEqual(git_index.cached_repo, "/tmp/modelforge-test-cache/cache/src-d/models")
+        self.clear()
+        fake_git.FakeRepo.reset(self.default_index)
+        git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path, signoff=True)
+        self.assertTrue(git_index.signoff)
 
     def test_remove(self):
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
@@ -280,8 +285,16 @@ class GitIndexTests(unittest.TestCase):
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
         git_index.upload("reset", {})
         self.assertTrue(fake_git.FakeRepo.added)
-        self.assertEqual(fake_git.FakeRepo.message, "Initialize a new Modelforge index")
+        self.assertEqual(
+            fake_git.FakeRepo.message, "Initialize a new Modelforge index")
         self.assertTrue(fake_git.FakeRepo.pushed)
+
+    def test_upload_dco(self):
+        git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path, signoff=True)
+        git_index.upload("reset", {})
+        self.assertEqual(
+            fake_git.FakeRepo.message, "Initialize a new Modelforge index\n\n"
+                                       "Signed-off-by: Travis CI User <travis@example.org>")
 
     def test_upload_bug(self):
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
