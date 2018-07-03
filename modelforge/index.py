@@ -10,9 +10,6 @@ from urllib.parse import urlparse
 
 import modelforge.configuration as config
 
-INDEX_FILE = "index.json"  #: Models repository index file name.
-REMOTE_URL = "%s://%s%s/%s"  #: Remote repo url
-
 
 class GitIndex:
 
@@ -21,9 +18,11 @@ class GitIndex:
         "delete": "Delete {model}/{uuid}",
         "add": "Add {model}/{uuid}",
     }
+    INDEX_FILE = "index.json"  #: Models repository index file name.
+    REMOTE_URL = "%s://%s%s/%s"  #: Remote repo url
 
     def __init__(self, index_repo: str="", username: str= "", password: str= "", cache: str="",
-                 log_level: int=logging.INFO):
+                 init: bool=False, log_level: int=logging.INFO):
         """
         Initializes a new instance of :class:`GitIndex`.
 
@@ -32,7 +31,9 @@ class GitIndex:
         :param password: Password for credentials if protocol is not ssh
         :param cache: Path to the folder where the repo will be cached, defaults to ~/.cache
         :param log_level: The logging level of this instance.
-        :raise ValueError: If missing credential, incorrect url or incorrect credentials
+        :param init: Whether the registry is being initialized (allows to catch some errors)
+        :raise ValueError: If missing credential, incorrect url, incorrect credentials or index
+               JSON file is not found/unreadable.
         """
         self._log = logging.getLogger(type(self).__name__)
         self._log.setLevel(log_level)
@@ -59,27 +60,34 @@ class GitIndex:
         self.cached_repo = os.path.join(cache, self.repo)
         if username and password:
             auth = username + ":" + password + "@"
-            self.remote_url = REMOTE_URL % (parsed_url.scheme, auth, parsed_url.netloc, self.repo)
+            self.remote_url = self.REMOTE_URL % (parsed_url.scheme, auth, parsed_url.netloc,
+                                                 self.repo)
         elif username or password:
             self._log.critical("Both username and password must be supplied to access git with "
                                "credentials.")
             raise ValueError
         else:
             self.remote_url = index_repo
-        self.contents = None
+        self.contents = {}
         try:
             self.fetch_index()
         except NotGitRepository as e:
             self._log.critical("Repository does not exist: %s" % e)
-            raise ValueError
+            raise ValueError from e
         except HangupException as e:
             self._log.critical("Check SSH is configured, or connection is stable: %s" % e)
-            raise ValueError
+            raise ValueError from e
         except GitProtocolError as e:
             self._log.critical("%s: %s\nCheck your Git credentials." % (type(e), e))
-            raise ValueError
-        self.models = self.contents["models"]
-        self.meta = self.contents["meta"]
+            raise ValueError from e
+        except (FileNotFoundError, ValueError) as e:
+            if not init:
+                self._log.critical(
+                    "%s does not exist or is unreadable, please run `init` command.",
+                    self.INDEX_FILE)
+                raise ValueError from e
+        self.models = self.contents.get("models", {})
+        self.meta = self.contents.get("meta", {})
 
     def fetch_index(self):
         os.makedirs(os.path.dirname(self.cached_repo), exist_ok=True)
@@ -91,7 +99,7 @@ class GitIndex:
             if self._are_local_and_remote_heads_different():
                 self._log.info("Cached index is not up to date, pulling %s", self. repo)
                 git.pull(self.cached_repo, self.remote_url)
-        with open(os.path.join(self.cached_repo, INDEX_FILE), encoding="utf-8") as _in:
+        with open(os.path.join(self.cached_repo, self.INDEX_FILE), encoding="utf-8") as _in:
             self.contents = json.load(_in)
 
     def remove_model(self, model_uuid: str) -> dict:
@@ -170,7 +178,7 @@ class GitIndex:
         self.contents = {"models": {}, "meta": {}}
 
     def upload(self, cmd: str, meta: dict):
-        index = os.path.join(self.cached_repo, INDEX_FILE)
+        index = os.path.join(self.cached_repo, self.INDEX_FILE)
         if os.path.exists(index):
             os.remove(index)
         self._log.info("Writing the new index.json ...")

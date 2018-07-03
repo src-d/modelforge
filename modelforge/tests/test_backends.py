@@ -65,13 +65,8 @@ class BackendTests(unittest.TestCase):
     def test_create_backend_invalid_args(self):
         backup = back.config.BACKEND_ARGS
         back.config.BACKEND_ARGS = "lalala"
-        success = True
-        try:
+        with self.assertRaises(ValueError):
             back.create_backend("Bar")
-            success = False
-        except ValueError:
-            pass
-        self.assertTrue(success)
         back.config.BACKEND_ARGS = backup
         backup = back.config.BACKEND_ARGS
         back.config.BACKEND_ARGS = ""

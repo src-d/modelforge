@@ -45,7 +45,7 @@ def create_backend_noexc(log: logging.Logger, git_index: GitIndex, name: str=Non
         return None
 
 
-def supply_backend(optional=False):
+def supply_backend(optional: bool =False, init: bool=False):
     real_optional = False if callable(optional) else optional
 
     def supply_backend_inner(func):
@@ -54,7 +54,7 @@ def supply_backend(optional=False):
             log = logging.getLogger(func.__name__)
             try:
                 git_index = GitIndex(index_repo=args.index_repo, username=args.username,
-                                     password=args.password, cache=args.cache,
+                                     password=args.password, cache=args.cache, init=init,
                                      log_level=args.log_level)
             except ValueError:
                 return 1

@@ -13,7 +13,7 @@ from modelforge.index import GitIndex
 from modelforge.meta import extract_model_meta
 
 
-@supply_backend
+@supply_backend(init=True)
 def initialize_registry(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
     Initialize the registry and the index.

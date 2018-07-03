@@ -104,6 +104,12 @@ class GitIndexTests(unittest.TestCase):
             ind.GitIndex(index_repo=self.default_url, password="no-username",
                          cache=self.cached_path)
 
+        with self.assertRaises(ValueError):
+            ind.GitIndex(index_repo="http://github.com/no-index", cache=self.cached_path)
+
+        with self.assertRaises(ValueError):
+            ind.GitIndex(index_repo="http://github.com/json", cache=self.cached_path)
+
     def test_init_variants(self):
         git_index = ind.GitIndex(
             index_repo="http://github.com/src-d/models", cache=self.cached_path)
