@@ -12,15 +12,15 @@ setup(
     description='APIs and tools to work with abstract "models" - files '
                 'with numpy arrays and metadata. It is possible to publish '
                 'models, list them. There is a built-in cache. Storage has backends.',
-    version="0.5.5-alpha",
+    version="0.6.0",
     license="Apache 2.0",
     author="source{d}",
     author_email="machine-learning@sourced.tech",
     url="https://github.com/src-d/modelforge",
     download_url="https://github.com/src-d/modelforge",
     packages=find_packages(exclude=("modelforge.tests",)),
-    keywords=["model", "asdf", "gcs", "google cloud storage",
-              "machine learning"],
+    keywords=["model", "git", "asdf", "gcs", "google cloud storage",
+              "machine learning", "registry"],
     install_requires=["asdf>=2.0,<3.0",
                       "lz4>=1.0,<2.0",
                       "numpy>=1.12,<2.0",
