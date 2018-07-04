@@ -32,6 +32,12 @@ def main():
                        help="Url of the remote Git repository.")
         p.add_argument("--cache", default=None,
                        help="Path to the folder where the Git repository will be cached.")
+        p.add_argument("-s", "--signoff", action="store_true",
+                       help="Add Signed-off-by line by the committer at the end of the commit log "
+                            "message. The meaning of a signoff depends on the project, but it "
+                            "typically certifies that committer has the rights to submit this work"
+                            " under the same license and agrees to a Developer Certificate of "
+                            "Origin (see http://developercertificate.org/ for more information).")
 
     def add_templates_args(p):
         p.add_argument(

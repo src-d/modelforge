@@ -125,6 +125,8 @@ containing your private key if you are running the `init`, `publish` or `delete`
 
 - `--cache`: Path to the cache where a copy of the git based index will be stored, defaults to 
 `~/.cache`.
+- `-s`/`--signoff`: Whether to add a [DCO](http://developercertificate.org/) to your commit 
+message, if the registry is modified.
 
 __TCP/HTTPS:__
 
