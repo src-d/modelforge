@@ -12,6 +12,10 @@ def clone(remote_url, cached_repo, checkout=True):
         raise HangupException
     if "bad-credentials" in remote_url:
         raise GitProtocolError
+    if "no-index" in remote_url:
+        raise FileNotFoundError
+    if "json" in remote_url:
+        raise ValueError
     os.makedirs(cached_repo, exist_ok=True)
     with open(os.path.join(cached_repo, "index.json"), "w") as _out:
         json.dump(FakeRepo.index, _out)

@@ -27,7 +27,7 @@ def main():
         p.add_argument("--username", default="",
                        help="Username for the Git repository with the index.")
         p.add_argument("--password", default="",
-                       help="Password for the Git repository with the index")
+                       help="Password for the Git repository with the index.")
         p.add_argument("--index-repo", default=None,
                        help="Url of the remote Git repository.")
         p.add_argument("--cache", default=None,
