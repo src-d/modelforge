@@ -164,13 +164,8 @@ class ModelTests(unittest.TestCase):
             configuration.VENDOR = vendor
 
     def test_error(self):
-        success = True
-        try:
-            model = GenericModel(source="f64bacd4-67fb-4c64-8382-399a8e7db52a")
-            success = False
-        except ValueError:
-            pass
-        self.assertTrue(success)
+        with self.assertRaises(ValueError):
+            GenericModel(source="f64bacd4-67fb-4c64-8382-399a8e7db52a")
 
     def test_id(self):
         def route(url):
@@ -212,13 +207,8 @@ class ModelTests(unittest.TestCase):
             return 404
 
         back.requests = FakeRequests(route)
-        success = True
-        try:
+        with self.assertRaises(ValueError):
             GenericModel(source="https://bad_code", backend=self.backend)
-            success = False
-        except ValueError:
-            pass
-        self.assertTrue(success)
 
     def test_init_with_model(self):
         model1 = Model1().load(source=get_path(self.DOCFREQ_PATH))
@@ -332,7 +322,7 @@ class ModelTests(unittest.TestCase):
     def test_save_create_missing_dirs(self):
         with tempfile.TemporaryDirectory(prefix="modelforge-test-") as savedir:
             savepath = os.path.join(savedir, "add/some/subdirs/", "model.asdf")
-            with self.assertRaises(FileNotFoundError) as _:
+            with self.assertRaises(FileNotFoundError):
                 Model8().save(savepath, create_missing_dirs=False)
             Model8().save(savepath)
             self.assertEqual(Model8().load(savepath).tree["abc"], 777)
