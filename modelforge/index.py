@@ -144,11 +144,11 @@ class GitIndex:
         model = os.path.join(model_directory, model_uuid + ".md")
         if os.path.exists(model):
             os.remove(model)
-        links = {model_type: {} for model_type in self.models.keys()}
-        for model_type, items in self.models.items():
+        links = {}
+        for m_type, items in self.models.items():
             for uuid in items:
                 if uuid in model_meta["dependencies"]:
-                    links[model_type][uuid] = os.path.join("/", model_type, "%s.md" % uuid)
+                    links[uuid] = os.path.join("/", m_type, "%s.md" % uuid)
         with open(model, "w") as fout:
             fout.write(template_model.render(model_type=model_type, model_uuid=model_uuid,
                                              meta=model_meta, links=links))
