@@ -25,7 +25,7 @@ def create_backend(name: str=None, git_index: GitIndex=None, args: str=None):
     if args:
         try:
             kwargs = dict(p.split("=") for p in args.split(","))
-        except:  # nopep8
+        except:  # flake8: noqa
             raise ValueError("Invalid args") from None
     else:
         kwargs = {}

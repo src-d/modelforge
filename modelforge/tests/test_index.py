@@ -299,13 +299,8 @@ class GitIndexTests(unittest.TestCase):
     def test_upload_bug(self):
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
         fake_git.FakeRepo.reset(self.default_index, head="1")
-        succeeded = True
-        try:
+        with self.assertRaises(ValueError):
             git_index.upload("reset", {})
-            succeeded = False
-        except ValueError:
-            pass
-        self.assertTrue(succeeded)
 
     def test_template(self):
         git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)

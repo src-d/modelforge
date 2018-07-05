@@ -34,8 +34,8 @@ matrix:
       before_install: *_before_install
       install: *_install
     - python: 3.6
-      env: SCRIPT="pep8 --max-line-length=99 ."
-      install: pip install pep8
+      env: SCRIPT="flake8 ."
+      install: pip install flake8
     - python: 3.6
       env: *_coverage
       before_install: *_before_install
