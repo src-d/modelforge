@@ -88,7 +88,8 @@ modelforge list --username user --password pass --index-repo https://github.com/
 ## Dump information about a model
 
 With this command you can get a dump of information concerning a specific model. The output of this
-command depends completely on the `dump` method of the model's class. 
+command depends completely on the `dump` method of the model's class. Naturally, if the model is 
+stored in your filesystem there is no need to specify backend or index arguments.
 
 - First (and only) positional argument: Path (if the model is stored on your filesystem), UUID or 
 URL of the model. 
