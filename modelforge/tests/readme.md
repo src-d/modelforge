@@ -6,7 +6,7 @@ readme_description
 
 Example:
 
-```
+```python
 readme_code docfreq
 ```
 
