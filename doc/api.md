@@ -18,8 +18,21 @@ are the methods that must be defined for your custom class to be compatible:
 - `_load_tree`: should load the model from the `tree` argument, a dict holding all the data
 - `_generate_tree`: should generate the `tree`, a dict holding all the data needed to load the 
 model
-- `dump`: should return a string containg information about the model
+- `dump`: should return a string containing information about the model
 
+You will also need to override the base class's static attributes: 
+
+- `NAME`: to differentiate each model type
+- `VENDOR`: to keep track of the ownership status of each model
+
+We use the `NAME` as well as a [UUID](https://fr.wikipedia.org/wiki/Universal_Unique_Identifier) 
+attributed to each model instance in order to index models pushed to a registry in an orderly 
+fashion. Docker images work roughly the same way, the UUID replacing the sha256 signature, and 
+similarly for any given model type present in an index there is a "default" model, which 
+corresponds to a "latest" docker image. However we also provide additional building blocks for
+versioning: the `derive` method can be used to create a new model with an incremented version, a
+new UUID, and whose `parent` metadata field will be linked to the old model. This can be useful in
+a wide range of cases, e.g. if you are training an ML model and wish to save it every n iteration.
 
 You may want to add some custom methods, e.g. `predict`. To see some examples, checkout our models 
 in [src-d/ml](https://github.com/src-d/ml/tree/master/sourced/ml/models), and try them out by 
@@ -30,7 +43,7 @@ We have also implemented some useful functions for large scale models:
 - `assemble_sparse_matrix` and `disassemble_sparse_matrix`, which handle sparse scipy matrices.
 
 
-Models can be registered with `modelforge.register_model()` - this is not strictly needed, but 
+Models can be registered with `modelforge.register_model()` - this is not strictly required, but 
 needed for extended model dumps. Most typically, you would like to import all your model classes 
 and register them in a single module, like [here](https://github.com/src-d/ml/blob/master/sourced/ml/models/__init__.py).
 
