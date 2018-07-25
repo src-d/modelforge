@@ -22,7 +22,7 @@ setup(
     keywords=["model", "git", "asdf", "gcs", "google cloud storage",
               "machine learning", "registry"],
     install_requires=["asdf>=2.0,<3.0",
-                      "lz4>=1.0,<2.0",
+                      "lz4>=1.0,<3.0",
                       "numpy>=1.12,<2.0",
                       "scipy>=1.0,<2.0",
                       "clint>=0.5.0,<0.6",
