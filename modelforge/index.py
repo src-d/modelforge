@@ -111,7 +111,7 @@ class GitIndex:
         model_type = None
         for key, val in self.models.items():
             if model_uuid in val:
-                self._log.info("Found %s among %s models.", (model_uuid, key))
+                self._log.info("Found %s among %s models.", model_uuid, key)
                 model_type = key
                 break
         if model_type is None:
