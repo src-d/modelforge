@@ -101,10 +101,7 @@ class BackendTests(unittest.TestCase):
         self.assertIsNone(test_optional(argparse.Namespace(
             index_repo=self.default_url, username="", password="", cache=self.cached_path,
             signoff=None, log_level="WARNING")))
-        shutil.rmtree(self.cached_path)
         self.assertEqual(test_optional(self._get_args(index_repo=self.default_url)), 1)
-        shutil.rmtree(self.cached_path)
-        self.tearDown()
         self.assertEqual(1, test_optional(self._get_args(index_repo="any_error_really")))
 
     def _get_args(self, index_repo):
