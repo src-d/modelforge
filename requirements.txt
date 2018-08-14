@@ -4,7 +4,7 @@ numpy==1.14.0
 scipy==1.0.0
 clint==0.5.1
 google-cloud-storage==1.2.0
-dulwich==0.19.2
+dulwich==0.19.5
 jinja2 ==2.10
 humanize==0.5.1
 python-dateutil==2.7.3

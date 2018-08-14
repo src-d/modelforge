@@ -4,7 +4,7 @@ model_description
 
 Example:
 
-```
+```python
 model_code "92609e70-f79c-46b5-8419-55726e873cfc"
 ```
 
