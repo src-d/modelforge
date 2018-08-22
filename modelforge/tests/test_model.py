@@ -319,6 +319,10 @@ class ModelTests(unittest.TestCase):
             Model8().save(f.name)
             self.assertEqual(Model8().load(f.name).tree["abc"], 777)
 
+    def test_save_no_name(self):
+        with self.assertRaises(AssertionError):
+            Model4().save("model.asdf")
+
     def test_save_create_missing_dirs(self):
         with tempfile.TemporaryDirectory(prefix="modelforge-test-") as savedir:
             savepath = os.path.join(savedir, "add/some/subdirs/", "model.asdf")
