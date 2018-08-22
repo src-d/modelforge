@@ -313,6 +313,9 @@ class ModelTests(unittest.TestCase):
                 getattr(model, n)
         self.assertEqual(model.version, [1, 0, 0])
         self.assertEqual(model.created_at, datetime.datetime(2017, 6, 19, 9, 59, 14, 766638))
+        
+    def test_init_version(self):
+        self.assertEqual(Model1().version, [1, 0, 0])
 
     def test_save(self):
         with tempfile.NamedTemporaryFile(prefix="modelforge-test-") as f:
