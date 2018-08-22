@@ -314,10 +314,17 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(model.version, [1, 0, 0])
         self.assertEqual(model.created_at, datetime.datetime(2017, 6, 19, 9, 59, 14, 766638))
 
+    def test_init_version(self):
+        self.assertEqual(Model1().version, [1, 0, 0])
+
     def test_save(self):
         with tempfile.NamedTemporaryFile(prefix="modelforge-test-") as f:
             Model8().save(f.name)
             self.assertEqual(Model8().load(f.name).tree["abc"], 777)
+
+    def test_save_no_name(self):
+        with self.assertRaises(AssertionError):
+            Model4().save("model.asdf")
 
     def test_save_create_missing_dirs(self):
         with tempfile.TemporaryDirectory(prefix="modelforge-test-") as savedir:

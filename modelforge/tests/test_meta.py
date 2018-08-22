@@ -11,22 +11,22 @@ from modelforge.tests.fake_requests import FakeRequests
 class MetaTests(unittest.TestCase):
     def test_generate_meta(self):
         fake = argparse.Namespace(meta="surprise")
-        meta = met.generate_meta("first", (1, 0, 1), fake)
+        meta = met.generate_meta("first", [1, 0, 1], fake)
         self.assertIsInstance(meta, dict)
         self.assertEqual(meta["model"], "first")
         uuid.UUID(meta["uuid"])
         self.assertEqual(meta["dependencies"], ["surprise"])
-        self.assertEqual(meta["version"], (1, 0, 1))
+        self.assertEqual(meta["version"], [1, 0, 1])
         self.assertIsInstance(meta["created_at"], datetime)
 
     def test_generate_meta_deps(self):
         fake = {"surprise": "me"}
-        meta = met.generate_meta("first", (1, 0, 1), fake)
+        meta = met.generate_meta("first", [1, 0, 1], fake)
         self.assertIsInstance(meta, dict)
         self.assertEqual(meta["model"], "first")
         uuid.UUID(meta["uuid"])
         self.assertEqual(meta["dependencies"], [{"surprise": "me"}])
-        self.assertEqual(meta["version"], (1, 0, 1))
+        self.assertEqual(meta["version"], [1, 0, 1])
         self.assertIsInstance(meta["created_at"], datetime)
 
     def test_extract_index_meta(self):
