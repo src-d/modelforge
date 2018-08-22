@@ -1,13 +1,14 @@
-import uuid
+from datetime import datetime
 import humanize
 import requests
-from datetime import datetime
+from typing import Sequence
+import uuid
 
 
 ARRAY_COMPRESSION = "zlib"
 
 
-def generate_meta(name: str, version: tuple, *deps) -> dict:
+def generate_meta(name: str, version: Sequence, *deps) -> dict:
     """
     Creates the metadata tree for the given model name and the list of
     dependencies.
@@ -22,7 +23,7 @@ def generate_meta(name: str, version: tuple, *deps) -> dict:
         "uuid": str(uuid.uuid4()),
         "dependencies": [(d.meta if not isinstance(d, dict) else d)
                          for d in deps],
-        "version": version,
+        "version": list(version),
         "created_at": datetime.now()
     }
 
