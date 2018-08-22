@@ -193,7 +193,7 @@ class Model:
                 module_name = module.__spec__.name
             else:
                 try:
-                    module_name = "[%s]" % module.__file__
+                    module_name = "[%s]" % os.path.abspath(module.__file__)
                 except AttributeError:
                     module_name = "[unknown]"
         return "%s.%s().load(source=%s)" % (
@@ -264,6 +264,7 @@ class Model:
                                     path.
         :return: self
         """
+        assert self.NAME is not None
         if isinstance(output, str) and create_missing_dirs:
             dirs = os.path.split(output)[0]
             if dirs:
