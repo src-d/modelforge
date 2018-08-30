@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+from typing import Optional
 
 from jinja2 import Template
 from dulwich import porcelain as git
@@ -23,8 +24,9 @@ class GitIndex:
     INDEX_FILE = "index.json"  #: Models repository index file name.
     REMOTE_URL = "%s://%s%s/%s"  #: Remote repo url
 
-    def __init__(self, index_repo: str="", username: str= "", password: str= "", cache: str="",
-                 signoff: bool=False, init: bool=False, log_level: int=logging.INFO):
+    def __init__(self, index_repo: str=None, username: str=None, password: str=None,
+                 cache: str=None, signoff: Optional[bool]=None, init: bool=False,
+                 log_level: int=logging.INFO):
         """
         Initializes a new instance of :class:`GitIndex`.
         :param index_repo: Remote repository's address where the index is maintained
@@ -39,13 +41,13 @@ class GitIndex:
         """
         self._log = logging.getLogger(type(self).__name__)
         self._log.setLevel(log_level)
-        if index_repo is None and config.INDEX_REPO:
+        if index_repo is None:
             index_repo = config.INDEX_REPO
         if cache is None:
             cache = config.CACHE_DIR
-        self.signoff = signoff
         if signoff is None:
-            self.signoff = config.ALWAYS_SIGNOFF
+            signoff = config.ALWAYS_SIGNOFF
+        self.signoff = signoff
         parsed_url = urlparse(index_repo)
         if not parsed_url.scheme or \
                 parsed_url.scheme not in ("git", "git+ssh", "ssh", "http", "https"):
@@ -67,10 +69,10 @@ class GitIndex:
             auth = username + ":" + password + "@"
             self.remote_url = self.REMOTE_URL % (parsed_url.scheme, auth, parsed_url.netloc,
                                                  self.repo)
-        elif username or password:
-            self._log.critical("Both username and password must be supplied to access git with "
-                               "credentials.")
-            raise ValueError
+        elif (username is None) != (password is None):
+            msg = "Both username and password must be supplied to access git with credentials."
+            self._log.critical(msg)
+            raise ValueError(msg)
         else:
             self.remote_url = index_repo
         self.contents = {}
@@ -100,7 +102,7 @@ class GitIndex:
             self._log.warning("Index not found, caching %s in %s", self.repo, self.cached_repo)
             git.clone(self.remote_url, self.cached_repo, checkout=True)
         else:
-            self._log.info("Index is cached")
+            self._log.debug("Index is cached")
             if self._are_local_and_remote_heads_different():
                 self._log.info("Cached index is not up to date, pulling %s", self. repo)
                 git.pull(self.cached_repo, self.remote_url)

@@ -60,7 +60,7 @@ class GitIndexTests(unittest.TestCase):
         self.assertEqual(git_index.contents, self.default_index)
         self.assertEqual(git_index.models, self.default_index["models"])
         self.assertEqual(git_index.meta, self.default_index["meta"])
-        self.assertFalse(git_index.signoff)
+        self.assertTrue(git_index.signoff)
 
     def test_init_fetch(self):
         ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
@@ -268,21 +268,24 @@ class GitIndexTests(unittest.TestCase):
         self.assertListEqual(sorted(os.listdir(git_index.cached_repo)), [".gitignore", "docfreq"])
 
     def test_upload_add(self):
-        git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
+        git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path,
+                                 signoff=False)
         git_index.upload("add", {"model": "a", "uuid": "b"})
         self.assertTrue(fake_git.FakeRepo.added)
         self.assertEqual(fake_git.FakeRepo.message, "Add a/b")
         self.assertTrue(fake_git.FakeRepo.pushed)
 
     def test_upload_delete(self):
-        git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
+        git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path,
+                                 signoff=False)
         git_index.upload("delete", {"model": "a", "uuid": "b"})
         self.assertTrue(fake_git.FakeRepo.added)
         self.assertEqual(fake_git.FakeRepo.message, "Delete a/b")
         self.assertTrue(fake_git.FakeRepo.pushed)
 
     def test_upload_init(self):
-        git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
+        git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path,
+                                 signoff=False)
         git_index.upload("reset", {})
         self.assertTrue(fake_git.FakeRepo.added)
         self.assertEqual(
