@@ -29,11 +29,14 @@ def create_backend(name: str=None, git_index: GitIndex=None, args: str=None):
             raise ValueError("Invalid args") from None
     else:
         kwargs = {}
+    if git_index is None:
+        git_index = GitIndex()
     kwargs["index"] = git_index
     return __registry__[name](**kwargs)
 
 
-def create_backend_noexc(log: logging.Logger, git_index: GitIndex, name: str=None, args: str=None):
+def create_backend_noexc(log: logging.Logger, name: str=None, git_index: GitIndex=None,
+                         args: str=None):
     try:
         return create_backend(name, git_index, args)
     except KeyError:
@@ -45,7 +48,10 @@ def create_backend_noexc(log: logging.Logger, git_index: GitIndex, name: str=Non
         return None
 
 
-def supply_backend(optional: bool =False, init: bool=False):
+def supply_backend(optional: bool=False, init: bool=False):
+    """
+    Used by command line entries.
+    """
     real_optional = False if callable(optional) else optional
 
     def supply_backend_inner(func):
@@ -61,7 +67,7 @@ def supply_backend(optional: bool =False, init: bool=False):
                                          signoff=args.signoff, log_level=args.log_level)
                 except ValueError:
                     return 1
-                backend = create_backend_noexc(log, git_index, args.backend, args.args)
+                backend = create_backend_noexc(log, args.backend, git_index, args.args)
                 if backend is None:
                     return 1
             return func(args, backend, log)
