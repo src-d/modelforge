@@ -1,18 +1,16 @@
 from setuptools import setup, find_packages
-import sys
 
-if sys.version_info < (3, 5, 0):
-    typing = ["typing"]
-else:
-    typing = []
-
+with open("README.md") as f:
+    long_description = f.read()
 
 setup(
     name="modelforge",
     description='APIs and tools to work with abstract "models" - files '
                 'with numpy arrays and metadata. It is possible to publish '
                 'models, list them. There is a built-in cache. Storage has backends.',
-    version="0.7.0",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    version="0.7.1",
     license="Apache 2.0",
     author="source{d}",
     author_email="machine-learning@sourced.tech",
@@ -31,7 +29,8 @@ setup(
                       "jinja2 >=2.0,<3.0",
                       "humanize>=0.5.0,<0.6",
                       "python-dateutil>=2.0,<3.0",
-                      "requests >=2.0,<3.0"] + typing,
+                      "requests >=2.0,<3.0",
+                      "typing;python_version<'3.5'"],
     entry_points={
         "console_scripts": ["modelforge=modelforge.__main__:main"],
     },
