@@ -69,4 +69,4 @@ wish to publish the model our GCS bucket, feel free to open an issue to contact 
 
 ## License
 
-[GNU GPL v3.0](LICENSE).
+[Apache v2.0](LICENSE).
