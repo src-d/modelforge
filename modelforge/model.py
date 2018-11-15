@@ -10,13 +10,12 @@ from typing import Union, Iterable, BinaryIO, List, Tuple
 
 import asdf
 import numpy
+import pygtrie
 import scipy.sparse
 
 import modelforge.configuration as config
 from modelforge.meta import generate_meta
 from modelforge.storage_backend import StorageBackend
-
-ARRAY_COMPRESSION = "lz4"
 
 
 class Model:
@@ -29,6 +28,10 @@ class Model:
     VENDOR = None  #: The name of the issuing vendor, e.g. "source{d}"
     DEFAULT_NAME = "default"  #: When no uuid is specified, this is used.
     DEFAULT_FILE_EXT = ".asdf"  #: File extension of the model.
+    NO_COMPRESSION = tuple()  #: Tree path prefixes which should not be compressed.
+                              #: Note: "/" is automatically appended to all the compared paths.
+                              #: Paths always start with a "/".
+    ARRAY_COMPRESSION = "lz4"
 
     def __init__(self, **kwargs):
         """
@@ -40,14 +43,19 @@ class Model:
         self._source = None
         self._meta = generate_meta(self.NAME, (1, 0, 0))
         self._meta["__init__"] = True
+        self._asdf = None
+        assert isinstance(self.NO_COMPRESSION, tuple), "NO_COMPRESSION must be a tuple"
+        self._compression_prefixes = pygtrie.PrefixSet(self.NO_COMPRESSION)
 
     def load(self, source: Union[str, BinaryIO, "Model"]=None, cache_dir: str=None,
-             backend: StorageBackend=None) -> "Model":
+             backend: StorageBackend=None, lazy=False) -> "Model":
         """
         Initializes a new Model instance.
         :param source: UUID, file system path, file object or an URL; None means auto.
         :param cache_dir: The directory where to store the downloaded model.
         :param backend: Remote storage backend to use if ``source`` is a UUID or a URL.
+        :param lazy: Do not really load numpy arrays into memory. Instead, mmap() them. \
+                     User is expected to call Model.close() when the tree is no longer needed.
         """
         if isinstance(source, Model):
             if not isinstance(source, type(self)):
@@ -103,7 +111,8 @@ class Model:
                     backend.fetch_model(source, file_name)
                     source = file_name
             self._log.info("Reading %s...", source)
-            with asdf.open(source) as model:
+            model = asdf.open(source, copy_arrays=not lazy, lazy_load=lazy)
+            try:
                 tree = model.tree
                 self._meta = tree["meta"]
                 if self.NAME is not None:
@@ -119,6 +128,11 @@ class Model:
                                 "The supplied model is of the wrong type: needed "
                                 "%s, got %s." % (needed, meta_name))
                 self._load_tree(tree)
+            finally:
+                if not lazy:
+                    model.close()
+                else:
+                    self._asdf = model
         finally:
             if self.NAME is None and cache_dir is not None:
                 shutil.rmtree(cache_dir)
@@ -150,6 +164,16 @@ class Model:
     license = metaprop("license")
 
     del metaprop
+
+    def close(self):
+        """
+        *Effective only if the model is loaded in lazy mode = `load(lazy=True)`* \
+        Free all the allocated resources for the underlying ASDF file.
+
+        :return: Nothing.
+        """
+        if self._asdf is not None:
+            self._asdf.close()
 
     def derive(self, new_version: Union[tuple, list]=None) -> "Model":
         """
@@ -286,7 +310,24 @@ class Model:
         meta.pop("__init__", None)
         final_tree = {"meta": meta}
         final_tree.update(tree)
-        asdf.AsdfFile(final_tree).write_to(output, all_array_compression=ARRAY_COMPRESSION)
+        with asdf.AsdfFile(final_tree) as file:
+            queue = [("", tree)]
+            while queue:
+                path, element = queue.pop()
+                if isinstance(element, dict):
+                    for key, val in element.items():
+                        queue.append((path + "/" + key, val))
+                elif isinstance(element, (list, tuple)):
+                    for child in element:
+                        queue.append((path, child))
+                elif isinstance(element, numpy.ndarray):
+                    path += "/"
+                    if path not in self._compression_prefixes:
+                        self._log.debug("%s -> %s compression", path, self.ARRAY_COMPRESSION)
+                        file.set_array_compression(element, self.ARRAY_COMPRESSION)
+                    else:
+                        self._log.debug("%s -> compression disabled", path)
+            file.write_to(output)
         if isinstance(output, str):
             os.chmod(output, file_mode)
 
