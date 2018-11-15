@@ -10,7 +10,7 @@ setup(
                 "models, list them. There is a built-in cache. Storage has backends.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version="0.8.0",
+    version="0.8.1",
     license="Apache 2.0",
     author="source{d}",
     author_email="machine-learning@sourced.tech",
