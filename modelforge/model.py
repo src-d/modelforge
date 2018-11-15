@@ -417,7 +417,7 @@ def split_strings(subtree: dict) -> List[str]:
     if subtree.get("str", True):
         strings = strings.decode("utf-8")
     lengths = subtree["lengths"]
-    result = [None] * len(lengths)
+    result = [None] * lengths.shape[0]
     offset = 0
     for i, l in enumerate(lengths):
         result[i] = strings[offset:offset + l]
