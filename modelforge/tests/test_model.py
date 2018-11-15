@@ -139,7 +139,7 @@ class ModelTests(unittest.TestCase):
         ind.Repo = fake_git.FakeRepo
         fake_git.FakeRepo.reset(self.default_index)
         self.backend = create_backend(
-            git_index=ind.GitIndex(index_repo=self.default_url, cache=self.cached_path))
+            git_index=ind.GitIndex(remote=self.default_url, cache=self.cached_path))
 
     def clear(self):
         if os.path.exists(self.cached_path):

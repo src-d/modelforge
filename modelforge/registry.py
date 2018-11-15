@@ -114,7 +114,7 @@ def list_models(args: argparse.Namespace):
     :return: None
     """
     try:
-        git_index = GitIndex(index_repo=args.index_repo, username=args.username,
+        git_index = GitIndex(remote=args.index_repo, username=args.username,
                              password=args.password, cache=args.cache, log_level=args.log_level)
     except ValueError:
         return 1

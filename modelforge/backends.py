@@ -71,7 +71,7 @@ def supply_backend(optional: Union[callable, bool]=False, index_exists: bool=Tru
                 backend = None
             else:
                 try:
-                    git_index = GitIndex(index_repo=args.index_repo, username=args.username,
+                    git_index = GitIndex(remote=args.index_repo, username=args.username,
                                          password=args.password, cache=args.cache,
                                          exists=index_exists, signoff=args.signoff,
                                          log_level=args.log_level)

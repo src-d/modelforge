@@ -25,13 +25,13 @@ class GitIndex:
     INDEX_FILE = "index.json"  #: Models repository index file name.
     REMOTE_URL = "%s://%s%s/%s"  #: Remote repo url
 
-    def __init__(self, index_repo: str=None, username: str=None, password: str=None,
+    def __init__(self, remote: str=None, username: str=None, password: str=None,
                  cache: str=None, signoff: Optional[bool]=None, exists: bool=True,
                  log_level: int=logging.INFO):
         """
         Initialize a new instance of :class:`GitIndex`.
 
-        :param index_repo: Remote repository's address where the index is maintained.
+        :param remote: Remote repository's address where the index is maintained.
         :param username: Username for credentials if protocol is not ssh.
         :param password: Password for credentials if protocol is not ssh.
         :param cache: Path to the folder where the repo will be cached, defaults to `~/.cache`.
@@ -44,14 +44,14 @@ class GitIndex:
         """
         self._log = logging.getLogger(type(self).__name__)
         self._log.setLevel(log_level)
-        if index_repo is None:
-            index_repo = config.INDEX_REPO
+        if remote is None:
+            remote = config.INDEX_REPO
         if cache is None:
             cache = config.CACHE_DIR
         if signoff is None:
             signoff = config.ALWAYS_SIGNOFF
         self.signoff = signoff
-        parsed_url = urlparse(index_repo)
+        parsed_url = urlparse(remote)
         if not parsed_url.scheme or \
                 parsed_url.scheme not in ("git", "git+ssh", "ssh", "http", "https"):
             self._log.critical("Parsed url does not contain a valid protocol.")
@@ -77,7 +77,7 @@ class GitIndex:
             self._log.critical(msg)
             raise ValueError(msg)
         else:
-            self.remote_url = index_repo
+            self.remote_url = remote
         self.contents = {}
         try:
             self.fetch()
@@ -238,6 +238,8 @@ class GitIndex:
         if not template[:-len(jinja2_ext)].endswith(".md"):
             self._log.error("Template file should be a Markdown file.")
             raise ValueError
+        if not os.path.isabs(template):
+            template = os.path.join(os.path.dirname(__file__), template)
         with open(template, encoding="utf-8") as fin:
             template_obj = Template(fin.read(), **env)
         template_obj.filename = template

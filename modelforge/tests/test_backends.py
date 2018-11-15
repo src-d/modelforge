@@ -74,7 +74,7 @@ class BackendTests(unittest.TestCase):
         class Bar(back.StorageBackend):
             NAME = "Bar"
         back.register_backend(Bar)
-        git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
+        git_index = ind.GitIndex(remote=self.default_url, cache=self.cached_path)
         try:
             self.assertIsInstance(back.create_backend("Bar", git_index), Bar)
         finally:
@@ -84,7 +84,7 @@ class BackendTests(unittest.TestCase):
         backup = back.config.BACKEND_ARGS
         back.config.BACKEND_ARGS = "lalala"
         logger = logging.getLogger()
-        git_index = ind.GitIndex(index_repo=self.default_url, cache=self.cached_path)
+        git_index = ind.GitIndex(remote=self.default_url, cache=self.cached_path)
         try:
             self.assertIsNone(back.create_backend_noexc(logger, name="Bar", git_index=git_index))
         finally:
