@@ -4,34 +4,44 @@ from modelforge.index import GitIndex
 
 
 class StorageBackend:
+    """
+    Abstract class to define the model storage backend interface.
+    """
+
     NAME = None
 
     def __init__(self, index: GitIndex=None, **kwargs):
         """
-        A backend
+        Initialize the backend.
+
         :param index: GitIndex where the index is maintained.
         """
         self._index = index
 
     @property
     def index(self) -> GitIndex:
+        """
+        Get the associated models index object.
+        """
         if self._index:
             return self._index
         raise AttributeError("No index was provided.")
 
     def reset(self, force: bool):
         """
-        Initialize backend.
-        :param force: If backend is not empty, force must be set to True.
+        Initialize the backend's state. This involves e.g. creating the directory structure, \
+        creating DB tables, allocating a new blob storage entry on the web, etc.
+
+        :param force: If backend is not empty, `force` must be set to True.
         :return: None
         :raises BackendRequiredError: If supplied bucket is unusable.
-        :raises ExistingBackendError: If backend is already initialized, and force set to False.
+        :raises ExistingBackendError: If backend is already initialized, and `force` set to False.
         """
         raise NotImplementedError
 
     def upload_model(self, path: str, meta: dict, force: bool) -> str:
         """
-        Puts the given file to the remote storage.
+        Put the given file to the remote storage.
 
         :param path: Path to the model file.
         :param meta: Metadata of the model.
@@ -44,7 +54,7 @@ class StorageBackend:
 
     def fetch_model(self, source: str, file: Union[str, BinaryIO]) -> None:
         """
-        Downloads the model from the remote storage.
+        Download the model from the remote storage.
 
         :param source: URL to download.
         :param file: Path to the local file to write or open file object.
@@ -56,7 +66,7 @@ class StorageBackend:
 
     def delete_model(self, meta: dict):
         """
-        Deletes the model associated to the metadata dictionary from the remote storage.
+        Delete the model associated to the metadata dictionary from the remote storage.
 
         :param meta: Metadata of the model.
         :raises BackendRequiredError: If supplied bucket is unusable.
@@ -69,6 +79,7 @@ class ExistingBackendError(Exception):
     """
     User tried to initialize a backend that already was initialized without forcing.
     """
+
     pass
 
 
@@ -76,6 +87,7 @@ class BackendRequiredError(Exception):
     """
     User tried to publish or delete a model, but the supplied bucket parameters were incorrect.
     """
+
     pass
 
 
@@ -83,4 +95,5 @@ class ModelAlreadyExistsError(Exception):
     """
     User tried to publish a model that already exists without forcing.
     """
+
     pass

@@ -1,4 +1,5 @@
 class FakeRequest:
+    """Mock `requests.Request`."""
     def __init__(self, content):
         self.content = content
 
@@ -18,6 +19,7 @@ class FakeRequest:
 
 
 class FakeRequests:
+    """Mock `requests`."""
     def __init__(self, router):
         self.router = router
 

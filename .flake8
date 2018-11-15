@@ -1,2 +1,7 @@
 [flake8]
 max-line-length=99
+ignore=B008,E121,E123,E126,E226,E24,E704,W503,W504,D100,D200,D301,D402
+inline-quotes="
+import-order-style=appnexus
+application-package-names=modelforge
+per-file-ignores=**/tests/*:D

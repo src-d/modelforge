@@ -3,14 +3,15 @@ import logging
 import sys
 import os
 
-from modelforge.logs import setup_logging
+from modelforge import slogging
 from modelforge.registry import publish_model, list_models, initialize_registry, dump_model, \
     delete_model
 
 
 def main():
     """
-    Creates all the argparse-rs and invokes the function from set_defaults().
+    Create all the argparse-rs and invokes the function from set_defaults().
+
     :return: The result of the function from set_defaults().
     """
     parser = argparse.ArgumentParser()
@@ -96,7 +97,7 @@ def main():
     # ------------------------------------------------------------------------
     args = parser.parse_args()
     args.log_level = logging._nameToLevel[args.log_level]
-    setup_logging(args.log_level)
+    slogging.setup(args.log_level, False)
     try:
         handler = args.handler
     except AttributeError:

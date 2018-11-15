@@ -6,6 +6,12 @@ import sys
 
 @contextmanager
 def captured_output():
+    """
+    Record stdout, stderr and logging. This should be used in a context manager:
+
+    >>> with captured_output():
+    >>>     # ...
+    """
     log = StringIO()
     log_handler = logging.StreamHandler(log)
     logging.getLogger().addHandler(log_handler)

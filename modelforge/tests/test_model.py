@@ -264,11 +264,11 @@ class ModelTests(unittest.TestCase):
         meta = model.meta
         self.assertIsInstance(meta, dict)
         self.assertEqual(meta, {
-            'created_at': datetime.datetime(2017, 6, 19, 9, 59, 14, 766638),
-            'dependencies': [],
-            'model': 'docfreq',
-            'uuid': 'f64bacd4-67fb-4c64-8382-399a8e7db52a',
-            'version': [1, 0, 0]})
+            "created_at": datetime.datetime(2017, 6, 19, 9, 59, 14, 766638),
+            "dependencies": [],
+            "model": "docfreq",
+            "uuid": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
+            "version": [1, 0, 0]})
 
     def test_uninitialized_dump(self):
         text = str(Model4())

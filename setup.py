@@ -5,9 +5,9 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name="modelforge",
-    description='APIs and tools to work with abstract "models" - files '
-                'with numpy arrays and metadata. It is possible to publish '
-                'models, list them. There is a built-in cache. Storage has backends.',
+    description="APIs and tools to work with abstract \"models\" - files "
+                "with numpy arrays and metadata. It is possible to publish "
+                "models, list them. There is a built-in cache. Storage has backends.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     version="0.8.0",

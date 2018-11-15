@@ -20,7 +20,7 @@ from modelforge.storage_backend import StorageBackend
 
 class Model:
     """
-    Base class for all the models. All models should be backwards compatible:
+    Base class for all the models. All models should be backwards compatible: \
     base class should be able to load the file generated from an inheritor.
     """
 
@@ -29,13 +29,14 @@ class Model:
     DEFAULT_NAME = "default"  #: When no uuid is specified, this is used.
     DEFAULT_FILE_EXT = ".asdf"  #: File extension of the model.
     NO_COMPRESSION = tuple()  #: Tree path prefixes which should not be compressed.
-                              #: Note: "/" is automatically appended to all the compared paths.
-                              #: Paths always start with a "/".
-    ARRAY_COMPRESSION = "lz4"
+    # Note: "/" is automatically appended to all the compared paths.
+    # Paths always start with a "/".
+    ARRAY_COMPRESSION = "lz4"  #: ASDF default compression, options: zlib, bzp2, lz4
 
     def __init__(self, **kwargs):
         """
-        Initializes a new Model instance.
+        Initialize a new Model instance.
+
         :param kwargs: Everything is ignored except ``log_level``.
         """
         self._log = logging.getLogger(self.NAME)
@@ -50,7 +51,8 @@ class Model:
     def load(self, source: Union[str, BinaryIO, "Model"]=None, cache_dir: str=None,
              backend: StorageBackend=None, lazy=False) -> "Model":
         """
-        Initializes a new Model instance.
+        Build a new Model instance.
+
         :param source: UUID, file system path, file object or an URL; None means auto.
         :param cache_dir: The directory where to store the downloaded model.
         :param backend: Remote storage backend to use if ``source`` is a UUID or a URL.
@@ -146,6 +148,7 @@ class Model:
         return self._meta
 
     def metaprop(name):
+        """Temporary property builder."""
         def get(self):
             return self.meta[name]
 
@@ -177,8 +180,9 @@ class Model:
 
     def derive(self, new_version: Union[tuple, list]=None) -> "Model":
         """
-        Inherits the new model from the current one. This is used for versioning.
+        Inherit the new model from the current one - used for versioning. \
         This operation is in-place.
+
         :param new_version: The version of the new model.
         :return: The derived model - self.
         """
@@ -199,6 +203,7 @@ class Model:
         return self
 
     def __str__(self):
+        """Format model description as a string."""
         try:
             dump = self.dump()
         except NotImplementedError:
@@ -210,6 +215,7 @@ class Model:
         return "%s%s" % (pformat(self.meta), dump)
 
     def __repr__(self):
+        """Format model object as a string."""
         module = inspect.getmodule(self)
         module_name = module.__name__
         if module_name == "__main__":
@@ -226,7 +232,7 @@ class Model:
 
     def __getstate__(self):
         """
-        Fixes pickling.
+        Fix pickling.
         """
         state = self.__dict__.copy()
         state["_log"] = self._log.level
@@ -234,7 +240,7 @@ class Model:
 
     def __setstate__(self, state):
         """
-        Fixes unpickling.
+        Fix unpickling.
         """
         log_level = state["_log"]
         self.__dict__.update(state)
@@ -243,6 +249,7 @@ class Model:
 
     @staticmethod
     def cache_dir() -> str:
+        """Return the default cache directory where downloaded models are stored."""
         if config.VENDOR is None:
             raise RuntimeError("modelforge is not configured; look at modelforge.configuration. "
                                "Depending on your objective you may or may not want to create a "
@@ -251,7 +258,8 @@ class Model:
 
     def get_dep(self, name: str) -> str:
         """
-        Returns the uuid of the dependency identified with "name".
+        Return the uuid of the dependency identified with "name".
+
         :param name:
         :return: UUID
         """
@@ -263,7 +271,8 @@ class Model:
 
     def set_dep(self, *deps) -> "Model":
         """
-        Registers the dependencies for this model.
+        Register the dependencies for this model.
+
         :param deps: The parent models: objects or meta dicts.
         :return: self
         """
@@ -273,7 +282,7 @@ class Model:
 
     def dump(self) -> str:
         """
-        Returns the string with the brief information about the model.
+        Return the string with the brief information about the model. \
         Should not include any metadata.
         """
         raise NotImplementedError()
@@ -281,7 +290,8 @@ class Model:
     def save(self, output: Union[str, BinaryIO], deps: Iterable=tuple(),
              create_missing_dirs: bool=True) -> "Model":
         """
-        Serializes the model to a file.
+        Serialize the model to a file.
+
         :param output: path to the file or a file object.
         :param deps: the list of the dependencies.
         :param create_missing_dirs: create missing directories in output path if the output is a \
@@ -300,7 +310,8 @@ class Model:
 
     def _write_tree(self, tree: dict, output: Union[str, BinaryIO], file_mode: int=0o666) -> None:
         """
-        Writes the model to disk.
+        Write the model to disk.
+
         :param tree: The data dict - will be the ASDF tree.
         :param output: The output file path or a file object.
         :param file_mode: The output file's permissions.
@@ -333,14 +344,16 @@ class Model:
 
     def _generate_tree(self) -> dict:
         """
-        Returns the tree to store in ASDF file.
+        Return the tree to store in ASDF file.
+
         :return: None
         """
         raise NotImplementedError()
 
     def _load_tree(self, tree: dict) -> None:
         """
-        Attaches the needed data from the tree.
+        Attach the needed data from the tree.
+
         :param tree: asdf file tree.
         :return: None
         """
@@ -349,8 +362,9 @@ class Model:
 
 def merge_strings(list_of_strings: Union[List[str], Tuple[str]]) -> dict:
     """
-    Packs the list of strings into two arrays: the concatenated chars and the
+    Pack the list of strings into two arrays: the concatenated chars and the \
     individual string lengths. :func:`split_strings()` does the inverse.
+
     :param list_of_strings: The :class:`tuple` or :class:`list` of :class:`str`-s \
                             or :class:`bytes`-s to pack.
     :return: :class:`dict` with "strings" and "lengths" \
@@ -393,27 +407,29 @@ def merge_strings(list_of_strings: Union[List[str], Tuple[str]]) -> dict:
 
 def split_strings(subtree: dict) -> List[str]:
     """
-    Produces the list of strings from the dictionary with concatenated chars
+    Produce the list of strings from the dictionary with concatenated chars \
     and lengths. Opposite to :func:`merge_strings()`.
+
     :param subtree: The dict with "strings" and "lengths".
     :return: :class:`list` of :class:`str`-s or :class:`bytes`.
     """
-    result = []
     strings = subtree["strings"][0]
     if subtree.get("str", True):
         strings = strings.decode("utf-8")
     lengths = subtree["lengths"]
+    result = [None] * len(lengths)
     offset = 0
     for i, l in enumerate(lengths):
-        result.append(strings[offset:offset + l])
+        result[i] = strings[offset:offset + l]
         offset += l
     return result
 
 
 def disassemble_sparse_matrix(matrix: scipy.sparse.spmatrix) -> dict:
     """
-    Transforms a scipy.sparse matrix into the serializable collection of
+    Transform a scipy.sparse matrix into the serializable collection of \
     :class:`numpy.ndarray`-s. :func:`assemble_sparse_matrix()` does the inverse.
+
     :param matrix: :mod:`scipy.sparse` matrix; csr, csc and coo formats are \
                    supported.
     :return: :class:`dict` with "shape", "format" and "data" - :class:`tuple` \
@@ -446,9 +462,10 @@ def disassemble_sparse_matrix(matrix: scipy.sparse.spmatrix) -> dict:
 
 def assemble_sparse_matrix(subtree: dict) -> scipy.sparse.spmatrix:
     """
-    Transforms a dictionary with "shape", "format" and "data" into the
-    :mod:`scipy.sparse` matrix.
+    Transform a dictionary with "shape", "format" and "data" into the \
+    :mod:`scipy.sparse` matrix. \
     Opposite to :func:`disassemble_sparse_matrix()`.
+
     :param subtree: :class:`dict` which describes the :mod:`scipy.sparse` \
                     matrix.
     :return: :mod:`scipy.sparse` matrix of the specified format.

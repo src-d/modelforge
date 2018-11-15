@@ -1,3 +1,5 @@
+"""Mocks for Dulwich."""
+
 import os
 import json
 from copy import deepcopy

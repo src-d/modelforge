@@ -14,6 +14,7 @@ import modelforge.configuration as config
 
 
 class GitIndex:
+    """Maintain the model metadata in a Git repository."""
 
     COMMIT_MESSAGES = {
         "reset": "Initialize a new Modelforge index",
@@ -25,18 +26,20 @@ class GitIndex:
     REMOTE_URL = "%s://%s%s/%s"  #: Remote repo url
 
     def __init__(self, index_repo: str=None, username: str=None, password: str=None,
-                 cache: str=None, signoff: Optional[bool]=None, init: bool=False,
+                 cache: str=None, signoff: Optional[bool]=None, exists: bool=True,
                  log_level: int=logging.INFO):
         """
-        Initializes a new instance of :class:`GitIndex`.
-        :param index_repo: Remote repository's address where the index is maintained
-        :param username: Username for credentials if protocol is not ssh
-        :param password: Password for credentials if protocol is not ssh
-        :param cache: Path to the folder where the repo will be cached, defaults to ~/.cache
-        :param signoff: Whether to add a DCO to the commit message
-        :param init: Whether the registry is being initialized (allows to catch some errors)
+        Initialize a new instance of :class:`GitIndex`.
+
+        :param index_repo: Remote repository's address where the index is maintained.
+        :param username: Username for credentials if protocol is not ssh.
+        :param password: Password for credentials if protocol is not ssh.
+        :param cache: Path to the folder where the repo will be cached, defaults to `~/.cache`.
+        :param signoff: Whether to add a DCO to the commit message.
+        :param exists: Whether the Git remote exists or not. If it doesn't, we are initializing \
+                       (allows to catch some errors).
         :param log_level: The logging level of this instance.
-        :raise ValueError: If missing credential, incorrect url, incorrect credentials or index
+        :raise ValueError: If missing credential, incorrect url, incorrect credentials or index \
                JSON file is not found/unreadable.
         """
         self._log = logging.getLogger(type(self).__name__)
@@ -77,7 +80,7 @@ class GitIndex:
             self.remote_url = index_repo
         self.contents = {}
         try:
-            self.fetch_index()
+            self.fetch()
         except NotGitRepository as e:
             self._log.critical("Repository does not exist: %s" % e)
             raise ValueError from e
@@ -88,7 +91,7 @@ class GitIndex:
             self._log.critical("%s: %s\nCheck your Git credentials." % (type(e), e))
             raise ValueError from e
         except (FileNotFoundError, ValueError) as e:
-            if not init:
+            if exists:
                 self._log.critical(
                     "%s does not exist or is unreadable, please run `init` command.",
                     self.INDEX_FILE)
@@ -96,7 +99,8 @@ class GitIndex:
         self.models = self.contents.get("models", {})
         self.meta = self.contents.get("meta", {})
 
-    def fetch_index(self):
+    def fetch(self):
+        """Load from the associated Git repository."""
         os.makedirs(os.path.dirname(self.cached_repo), exist_ok=True)
         if not os.path.exists(self.cached_repo):
             self._log.warning("Index not found, caching %s in %s", self.repo, self.cached_repo)
@@ -110,6 +114,7 @@ class GitIndex:
             self.contents = json.load(_in)
 
     def remove_model(self, model_uuid: str) -> dict:
+        """Delete the model from the registry. Call `upload()` to update the remote side."""
         model_type = None
         for key, val in self.models.items():
             if model_uuid in val:
@@ -137,6 +142,7 @@ class GitIndex:
 
     def add_model(self, model_type: str, model_uuid: str, meta: dict,
                   template_model: Template, update_default: bool=False):
+        """Add a new model to the registry. Call `upload()` to update the remote side."""
         if update_default or model_type not in self.meta:
             self.meta[model_type] = meta["default"]
         model_meta = meta["model"]
@@ -158,6 +164,7 @@ class GitIndex:
         self._log.info("Added %s", model)
 
     def update_readme(self, template_readme: Template):
+        """Generate the new README file locally."""
         readme = os.path.join(self.cached_repo, "README.md")
         if os.path.exists(readme):
             os.remove(readme)
@@ -171,6 +178,7 @@ class GitIndex:
         self._log.info("Updated %s", readme)
 
     def reset(self):
+        """Initialize the remote Git repository."""
         paths = []
         for filename in os.listdir(self.cached_repo):
             if filename.startswith(".git"):
@@ -185,6 +193,7 @@ class GitIndex:
         self.contents = {"models": {}, "meta": {}}
 
     def upload(self, cmd: str, meta: dict):
+        """Push the current state of the registry to Git."""
         index = os.path.join(self.cached_repo, self.INDEX_FILE)
         if os.path.exists(index):
             os.remove(index)
@@ -217,9 +226,10 @@ class GitIndex:
         git.push(self.cached_repo, self.remote_url, b"master")
         if self._are_local_and_remote_heads_different():
             self._log.error("Push has failed")
-            raise ValueError
+            raise ValueError("Push has failed")
 
     def load_template(self, template: str) -> Template:
+        """Load a Jinja2 template from the source directory."""
         env = dict(trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=False)
         jinja2_ext = ".jinja2"
         if not template.endswith(jinja2_ext):

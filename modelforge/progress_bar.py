@@ -6,7 +6,8 @@ from clint.textui import progress
 
 def progress_bar(enumerable, logger, **kwargs):
     """
-    Shows the progress bar in the terminal, if the logging level matches and we are interactive.
+    Show the progress bar in the terminal, if the logging level matches and we are interactive.
+
     :param enumerable: The iterator of which we indicate the progress.
     :param logger: The bound logging.Logger.
     :param kwargs: Keyword arguments to pass to clint.textui.progress.bar.
