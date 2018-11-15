@@ -1,4 +1,4 @@
-# Modelforge [![Build Status](https://travis-ci.org/src-d/modelforge.svg)](https://travis-ci.org/src-d/modelforge) [![codecov](https://codecov.io/github/src-d/modelforge/coverage.svg?branch=develop)](https://codecov.io/gh/src-d/modelforge) [![PyPI](https://img.shields.io/pypi/v/modelforge.svg)](https://pypi.python.org/pypi/modelforge)
+# Modelforge [![Build Status](https://travis-ci.org/src-d/modelforge.svg)](https://travis-ci.org/src-d/modelforge) [![codecov](https://codecov.io/github/src-d/modelforge/coverage.svg)](https://codecov.io/gh/src-d/modelforge) [![PyPI](https://img.shields.io/pypi/v/modelforge.svg)](https://pypi.python.org/pypi/modelforge)
 
 This project is the foundation for sharing machine learning models. It implements a git based
 index to maintain the *registry*, the remote storage where all model files are stored in a 
