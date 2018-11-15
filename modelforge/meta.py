@@ -1,9 +1,9 @@
 from datetime import datetime
-import humanize
-import requests
 from typing import Sequence
 import uuid
 
+import humanize
+import requests
 
 ARRAY_COMPRESSION = "zlib"
 

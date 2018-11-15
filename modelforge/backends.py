@@ -1,6 +1,6 @@
-import logging
-from typing import Type, Union, Optional
 from functools import wraps
+import logging
+from typing import Optional, Type, Union
 
 import modelforge.configuration as config
 from modelforge.gcs_backend import GCSBackend

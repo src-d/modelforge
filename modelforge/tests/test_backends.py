@@ -1,12 +1,12 @@
 import argparse
 import logging
-import unittest
-import shutil
 import os
+import shutil
+import unittest
 
-from modelforge.tests import fake_dulwich as fake_git
 from modelforge import backends as back
 import modelforge.index as ind
+from modelforge.tests import fake_dulwich as fake_git
 
 
 class BackendTests(unittest.TestCase):

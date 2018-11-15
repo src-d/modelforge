@@ -2,16 +2,16 @@ import io
 import logging
 import math
 import os
-import requests
-
 from typing import BinaryIO, Union
+
 from clint.textui import progress
 from google.cloud.exceptions import NotFound
+import requests
 
 from modelforge.index import GitIndex
 from modelforge.progress_bar import progress_bar
-from modelforge.storage_backend import StorageBackend, ExistingBackendError, \
-    ModelAlreadyExistsError, BackendRequiredError
+from modelforge.storage_backend import BackendRequiredError, ExistingBackendError, \
+    ModelAlreadyExistsError, StorageBackend
 
 
 class GCSBackend(StorageBackend):

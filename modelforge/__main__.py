@@ -1,11 +1,11 @@
 import argparse
 import logging
-import sys
 import os
+import sys
 
 from modelforge import slogging
-from modelforge.registry import publish_model, list_models, initialize_registry, dump_model, \
-    delete_model
+from modelforge.registry import delete_model, dump_model, initialize_registry, list_models, \
+    publish_model
 
 
 def main():

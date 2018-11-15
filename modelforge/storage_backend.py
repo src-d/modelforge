@@ -1,4 +1,4 @@
-from typing import Union, BinaryIO
+from typing import BinaryIO, Union
 
 from modelforge.index import GitIndex
 

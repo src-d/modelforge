@@ -8,12 +8,11 @@ import re
 import sys
 import threading
 import traceback
-from typing import Dict, Sequence, Union, Tuple
+from typing import Dict, Sequence, Tuple, Union
 
 import numpy
 import xxhash
 import yaml
-
 
 logs_are_structured = False
 

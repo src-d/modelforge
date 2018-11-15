@@ -1,8 +1,8 @@
 import argparse
 from datetime import datetime
+import os
 import unittest
 import uuid
-import os
 
 import modelforge.meta as met
 from modelforge.tests.fake_requests import FakeRequests

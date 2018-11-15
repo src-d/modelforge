@@ -1,25 +1,25 @@
 import datetime
 import inspect
+from io import BytesIO
 import os
 import pickle
+import shutil
 import tempfile
 import unittest
-import shutil
+
 import asdf
 import numpy
-from io import BytesIO
 from scipy.sparse import csr_matrix
 
+from modelforge import configuration
+from modelforge.backends import create_backend
 import modelforge.gcs_backend as back
 import modelforge.index as ind
-import modelforge.tests.fake_dulwich as fake_git
-
-from modelforge import configuration
 from modelforge.meta import generate_meta
-from modelforge.backends import create_backend
-from modelforge.model import merge_strings, split_strings, assemble_sparse_matrix, \
-    disassemble_sparse_matrix, Model
+from modelforge.model import assemble_sparse_matrix, disassemble_sparse_matrix, \
+    merge_strings, Model, split_strings
 from modelforge.models import GenericModel, register_model
+import modelforge.tests.fake_dulwich as fake_git
 from modelforge.tests.fake_requests import FakeRequests
 
 

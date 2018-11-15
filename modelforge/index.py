@@ -1,14 +1,14 @@
-import os
 import json
 import logging
+import os
 from typing import Optional
+from urllib.parse import urlparse
 
-from jinja2 import Template
 from dulwich import porcelain as git
 from dulwich.config import ConfigFile
+from dulwich.errors import GitProtocolError, HangupException, NotGitRepository
 from dulwich.repo import Repo
-from dulwich.errors import HangupException, GitProtocolError, NotGitRepository
-from urllib.parse import urlparse
+from jinja2 import Template
 
 import modelforge.configuration as config
 

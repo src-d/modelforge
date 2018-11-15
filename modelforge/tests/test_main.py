@@ -2,7 +2,6 @@ import argparse
 import sys
 import unittest
 
-
 import modelforge.__main__ as main
 
 

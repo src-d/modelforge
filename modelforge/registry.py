@@ -1,16 +1,16 @@
-import os
+import argparse
 import json
 import logging
-import argparse
+import os
 
 from dateutil.parser import parse as parse_datetime
 
-from modelforge.models import GenericModel
 from modelforge.backends import supply_backend
-from modelforge.storage_backend import StorageBackend, ModelAlreadyExistsError, \
-    ExistingBackendError
 from modelforge.index import GitIndex
 from modelforge.meta import extract_model_meta
+from modelforge.models import GenericModel
+from modelforge.storage_backend import ExistingBackendError, ModelAlreadyExistsError, \
+    StorageBackend
 
 
 @supply_backend(index_exists=True)

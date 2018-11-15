@@ -1,12 +1,12 @@
 import inspect
 import logging
 import os
+from pprint import pformat
 import re
 import shutil
 import tempfile
+from typing import BinaryIO, Iterable, List, Tuple, Union
 import uuid
-from pprint import pformat
-from typing import Union, Iterable, BinaryIO, List, Tuple
 
 import asdf
 import numpy
