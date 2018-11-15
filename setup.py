@@ -31,7 +31,8 @@ setup(
                       "python-dateutil>=2.0,<3.0",
                       "requests >=2.0,<3.0",
                       "typing;python_version<'3.5'",
-                      "pygtrie>=1.0,<3.0"],
+                      "pygtrie>=1.0,<3.0",
+                      "xxhash>=1.0,<2.0"],
     entry_points={
         "console_scripts": ["modelforge=modelforge.__main__:main"],
     },
