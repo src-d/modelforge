@@ -1,8 +1,10 @@
-import os
-import json
-from copy import deepcopy
+"""Mocks for Dulwich."""
 
-from dulwich.errors import HangupException, GitProtocolError, NotGitRepository
+from copy import deepcopy
+import json
+import os
+
+from dulwich.errors import GitProtocolError, HangupException, NotGitRepository
 
 
 def clone(remote_url, cached_repo, checkout=True):

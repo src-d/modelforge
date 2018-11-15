@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from modelforge.logs import setup_logging
+from modelforge import slogging
 from modelforge.tests.capture import captured_output
 
 
@@ -11,7 +11,7 @@ class LogTests(unittest.TestCase):
             root = logging.getLogger()
             if len(root.handlers) == 1:
                 root.handlers.insert(0, logging.StreamHandler())
-            setup_logging("INFO")
+            slogging.setup("INFO", False)
             logger = logging.getLogger("test")
             logger.info("success")
         self.assertIn("test", err.getvalue())

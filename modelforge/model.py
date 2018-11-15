@@ -1,27 +1,26 @@
 import inspect
 import logging
 import os
+from pprint import pformat
 import re
 import shutil
 import tempfile
+from typing import BinaryIO, Iterable, List, Tuple, Union
 import uuid
-from pprint import pformat
-from typing import Union, Iterable, BinaryIO, List, Tuple
 
 import asdf
 import numpy
+import pygtrie
 import scipy.sparse
 
 import modelforge.configuration as config
 from modelforge.meta import generate_meta
 from modelforge.storage_backend import StorageBackend
 
-ARRAY_COMPRESSION = "lz4"
-
 
 class Model:
     """
-    Base class for all the models. All models should be backwards compatible:
+    Base class for all the models. All models should be backwards compatible: \
     base class should be able to load the file generated from an inheritor.
     """
 
@@ -29,10 +28,15 @@ class Model:
     VENDOR = None  #: The name of the issuing vendor, e.g. "source{d}"
     DEFAULT_NAME = "default"  #: When no uuid is specified, this is used.
     DEFAULT_FILE_EXT = ".asdf"  #: File extension of the model.
+    NO_COMPRESSION = tuple()  #: Tree path prefixes which should not be compressed.
+    # Note: "/" is automatically appended to all the compared paths.
+    # Paths always start with a "/".
+    ARRAY_COMPRESSION = "lz4"  #: ASDF default compression, options: zlib, bzp2, lz4
 
     def __init__(self, **kwargs):
         """
-        Initializes a new Model instance.
+        Initialize a new Model instance.
+
         :param kwargs: Everything is ignored except ``log_level``.
         """
         self._log = logging.getLogger(self.NAME)
@@ -40,14 +44,20 @@ class Model:
         self._source = None
         self._meta = generate_meta(self.NAME, (1, 0, 0))
         self._meta["__init__"] = True
+        self._asdf = None
+        assert isinstance(self.NO_COMPRESSION, tuple), "NO_COMPRESSION must be a tuple"
+        self._compression_prefixes = pygtrie.PrefixSet(self.NO_COMPRESSION)
 
     def load(self, source: Union[str, BinaryIO, "Model"]=None, cache_dir: str=None,
-             backend: StorageBackend=None) -> "Model":
+             backend: StorageBackend=None, lazy=False) -> "Model":
         """
-        Initializes a new Model instance.
+        Build a new Model instance.
+
         :param source: UUID, file system path, file object or an URL; None means auto.
         :param cache_dir: The directory where to store the downloaded model.
         :param backend: Remote storage backend to use if ``source`` is a UUID or a URL.
+        :param lazy: Do not really load numpy arrays into memory. Instead, mmap() them. \
+                     User is expected to call Model.close() when the tree is no longer needed.
         """
         if isinstance(source, Model):
             if not isinstance(source, type(self)):
@@ -103,7 +113,8 @@ class Model:
                     backend.fetch_model(source, file_name)
                     source = file_name
             self._log.info("Reading %s...", source)
-            with asdf.open(source) as model:
+            model = asdf.open(source, copy_arrays=not lazy, lazy_load=lazy)
+            try:
                 tree = model.tree
                 self._meta = tree["meta"]
                 if self.NAME is not None:
@@ -119,6 +130,11 @@ class Model:
                                 "The supplied model is of the wrong type: needed "
                                 "%s, got %s." % (needed, meta_name))
                 self._load_tree(tree)
+            finally:
+                if not lazy:
+                    model.close()
+                else:
+                    self._asdf = model
         finally:
             if self.NAME is None and cache_dir is not None:
                 shutil.rmtree(cache_dir)
@@ -132,6 +148,7 @@ class Model:
         return self._meta
 
     def metaprop(name):
+        """Temporary property builder."""
         def get(self):
             return self.meta[name]
 
@@ -151,10 +168,21 @@ class Model:
 
     del metaprop
 
+    def close(self):
+        """
+        *Effective only if the model is loaded in lazy mode = `load(lazy=True)`* \
+        Free all the allocated resources for the underlying ASDF file.
+
+        :return: Nothing.
+        """
+        if self._asdf is not None:
+            self._asdf.close()
+
     def derive(self, new_version: Union[tuple, list]=None) -> "Model":
         """
-        Inherits the new model from the current one. This is used for versioning.
+        Inherit the new model from the current one - used for versioning. \
         This operation is in-place.
+
         :param new_version: The version of the new model.
         :return: The derived model - self.
         """
@@ -175,6 +203,7 @@ class Model:
         return self
 
     def __str__(self):
+        """Format model description as a string."""
         try:
             dump = self.dump()
         except NotImplementedError:
@@ -186,6 +215,7 @@ class Model:
         return "%s%s" % (pformat(self.meta), dump)
 
     def __repr__(self):
+        """Format model object as a string."""
         module = inspect.getmodule(self)
         module_name = module.__name__
         if module_name == "__main__":
@@ -202,7 +232,7 @@ class Model:
 
     def __getstate__(self):
         """
-        Fixes pickling.
+        Fix pickling.
         """
         state = self.__dict__.copy()
         state["_log"] = self._log.level
@@ -210,7 +240,7 @@ class Model:
 
     def __setstate__(self, state):
         """
-        Fixes unpickling.
+        Fix unpickling.
         """
         log_level = state["_log"]
         self.__dict__.update(state)
@@ -219,6 +249,7 @@ class Model:
 
     @staticmethod
     def cache_dir() -> str:
+        """Return the default cache directory where downloaded models are stored."""
         if config.VENDOR is None:
             raise RuntimeError("modelforge is not configured; look at modelforge.configuration. "
                                "Depending on your objective you may or may not want to create a "
@@ -227,7 +258,8 @@ class Model:
 
     def get_dep(self, name: str) -> str:
         """
-        Returns the uuid of the dependency identified with "name".
+        Return the uuid of the dependency identified with "name".
+
         :param name:
         :return: UUID
         """
@@ -239,7 +271,8 @@ class Model:
 
     def set_dep(self, *deps) -> "Model":
         """
-        Registers the dependencies for this model.
+        Register the dependencies for this model.
+
         :param deps: The parent models: objects or meta dicts.
         :return: self
         """
@@ -249,7 +282,7 @@ class Model:
 
     def dump(self) -> str:
         """
-        Returns the string with the brief information about the model.
+        Return the string with the brief information about the model. \
         Should not include any metadata.
         """
         raise NotImplementedError()
@@ -257,7 +290,8 @@ class Model:
     def save(self, output: Union[str, BinaryIO], deps: Iterable=tuple(),
              create_missing_dirs: bool=True) -> "Model":
         """
-        Serializes the model to a file.
+        Serialize the model to a file.
+
         :param output: path to the file or a file object.
         :param deps: the list of the dependencies.
         :param create_missing_dirs: create missing directories in output path if the output is a \
@@ -276,7 +310,8 @@ class Model:
 
     def _write_tree(self, tree: dict, output: Union[str, BinaryIO], file_mode: int=0o666) -> None:
         """
-        Writes the model to disk.
+        Write the model to disk.
+
         :param tree: The data dict - will be the ASDF tree.
         :param output: The output file path or a file object.
         :param file_mode: The output file's permissions.
@@ -286,20 +321,39 @@ class Model:
         meta.pop("__init__", None)
         final_tree = {"meta": meta}
         final_tree.update(tree)
-        asdf.AsdfFile(final_tree).write_to(output, all_array_compression=ARRAY_COMPRESSION)
+        with asdf.AsdfFile(final_tree) as file:
+            queue = [("", tree)]
+            while queue:
+                path, element = queue.pop()
+                if isinstance(element, dict):
+                    for key, val in element.items():
+                        queue.append((path + "/" + key, val))
+                elif isinstance(element, (list, tuple)):
+                    for child in element:
+                        queue.append((path, child))
+                elif isinstance(element, numpy.ndarray):
+                    path += "/"
+                    if path not in self._compression_prefixes:
+                        self._log.debug("%s -> %s compression", path, self.ARRAY_COMPRESSION)
+                        file.set_array_compression(element, self.ARRAY_COMPRESSION)
+                    else:
+                        self._log.debug("%s -> compression disabled", path)
+            file.write_to(output)
         if isinstance(output, str):
             os.chmod(output, file_mode)
 
     def _generate_tree(self) -> dict:
         """
-        Returns the tree to store in ASDF file.
+        Return the tree to store in ASDF file.
+
         :return: None
         """
         raise NotImplementedError()
 
     def _load_tree(self, tree: dict) -> None:
         """
-        Attaches the needed data from the tree.
+        Attach the needed data from the tree.
+
         :param tree: asdf file tree.
         :return: None
         """
@@ -308,8 +362,9 @@ class Model:
 
 def merge_strings(list_of_strings: Union[List[str], Tuple[str]]) -> dict:
     """
-    Packs the list of strings into two arrays: the concatenated chars and the
+    Pack the list of strings into two arrays: the concatenated chars and the \
     individual string lengths. :func:`split_strings()` does the inverse.
+
     :param list_of_strings: The :class:`tuple` or :class:`list` of :class:`str`-s \
                             or :class:`bytes`-s to pack.
     :return: :class:`dict` with "strings" and "lengths" \
@@ -330,10 +385,10 @@ def merge_strings(list_of_strings: Union[List[str], Tuple[str]]) -> dict:
             offset += len(s)
         strings = numpy.frombuffer(merged, dtype="S%d" % len(merged))
     max_len = 0
-    lengths = []
-    for s in list_of_strings:
+    lengths = [0] * len(list_of_strings)
+    for i, s in enumerate(list_of_strings):
         length = len(s)
-        lengths.append(length)
+        lengths[i] = length
         if length > max_len:
             max_len = length
     bl = max_len.bit_length()
@@ -352,27 +407,29 @@ def merge_strings(list_of_strings: Union[List[str], Tuple[str]]) -> dict:
 
 def split_strings(subtree: dict) -> List[str]:
     """
-    Produces the list of strings from the dictionary with concatenated chars
+    Produce the list of strings from the dictionary with concatenated chars \
     and lengths. Opposite to :func:`merge_strings()`.
+
     :param subtree: The dict with "strings" and "lengths".
     :return: :class:`list` of :class:`str`-s or :class:`bytes`.
     """
-    result = []
     strings = subtree["strings"][0]
     if subtree.get("str", True):
         strings = strings.decode("utf-8")
     lengths = subtree["lengths"]
+    result = [None] * len(lengths)
     offset = 0
     for i, l in enumerate(lengths):
-        result.append(strings[offset:offset + l])
+        result[i] = strings[offset:offset + l]
         offset += l
     return result
 
 
 def disassemble_sparse_matrix(matrix: scipy.sparse.spmatrix) -> dict:
     """
-    Transforms a scipy.sparse matrix into the serializable collection of
+    Transform a scipy.sparse matrix into the serializable collection of \
     :class:`numpy.ndarray`-s. :func:`assemble_sparse_matrix()` does the inverse.
+
     :param matrix: :mod:`scipy.sparse` matrix; csr, csc and coo formats are \
                    supported.
     :return: :class:`dict` with "shape", "format" and "data" - :class:`tuple` \
@@ -386,7 +443,18 @@ def disassemble_sparse_matrix(matrix: scipy.sparse.spmatrix) -> dict:
         "format": fmt
     }
     if isinstance(matrix, (scipy.sparse.csr_matrix, scipy.sparse.csc_matrix)):
-        result["data"] = matrix.data, matrix.indices, matrix.indptr
+        lengths = numpy.concatenate(([0], numpy.diff(matrix.indptr)))
+        mlbl = int(lengths.max()).bit_length()
+        if mlbl <= 8:
+            dtype = numpy.uint8
+        elif mlbl <= 16:
+            dtype = numpy.uint16
+        elif mlbl <= 32:
+            dtype = numpy.uint32
+        else:
+            dtype = numpy.uint64
+        lengths = lengths.astype(dtype)
+        result["data"] = matrix.data, matrix.indices, lengths
     elif isinstance(matrix, scipy.sparse.coo_matrix):
         result["data"] = matrix.data, (matrix.row, matrix.col)
     return result
@@ -394,13 +462,19 @@ def disassemble_sparse_matrix(matrix: scipy.sparse.spmatrix) -> dict:
 
 def assemble_sparse_matrix(subtree: dict) -> scipy.sparse.spmatrix:
     """
-    Transforms a dictionary with "shape", "format" and "data" into the
-    :mod:`scipy.sparse` matrix.
+    Transform a dictionary with "shape", "format" and "data" into the \
+    :mod:`scipy.sparse` matrix. \
     Opposite to :func:`disassemble_sparse_matrix()`.
+
     :param subtree: :class:`dict` which describes the :mod:`scipy.sparse` \
                     matrix.
     :return: :mod:`scipy.sparse` matrix of the specified format.
     """
     matrix_class = getattr(scipy.sparse, "%s_matrix" % subtree["format"])
+    if subtree["format"] in ("csr", "csc"):
+        indptr = subtree["data"][2]
+        if indptr[-1] != subtree["data"][0].shape[0]:
+            # indptr is diff-ed
+            subtree["data"][2] = indptr.cumsum()
     matrix = matrix_class(tuple(subtree["data"]), shape=subtree["shape"])
     return matrix

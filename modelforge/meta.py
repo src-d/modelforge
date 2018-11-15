@@ -1,17 +1,16 @@
 from datetime import datetime
-import humanize
-import requests
 from typing import Sequence
 import uuid
 
+import humanize
+import requests
 
 ARRAY_COMPRESSION = "zlib"
 
 
 def generate_meta(name: str, version: Sequence, *deps) -> dict:
     """
-    Creates the metadata tree for the given model name and the list of
-    dependencies.
+    Create the metadata tree for the given model name and the list of dependencies.
 
     :param name: The model's name.
     :param version: The caller's version - used to check the format match.
@@ -30,7 +29,7 @@ def generate_meta(name: str, version: Sequence, *deps) -> dict:
 
 def extract_model_meta(base_meta: dict, extra_meta: dict, model_url: str) -> dict:
     """
-    Merges the metadata from the backend and the extra metadata into a dict which is suitable for
+    Merge the metadata from the backend and the extra metadata into a dict which is suitable for \
     index.json.
 
     :param base_meta: tree["meta"] :class:`dict` containing data from the backend

@@ -9,7 +9,8 @@ __models__ = set()
 
 def register_model(cls: Type[Model]):
     """
-    Includes the given model class into the registry.
+    Include the given model class into the registry.
+
     :param cls: The class of the registered model.
     :return: None
     """
@@ -25,9 +26,19 @@ class GenericModel(Model):
     """
     Compatible with any model: loads it in :func:`__init__`.
     """
+
     def __init__(self, source: Union[str, "Model"]=None, dummy=False, cache_dir: str=None,
-                 backend: StorageBackend=None, log_level: int=logging.DEBUG):
-        super(GenericModel, self).__init__(log_level=log_level)
+                 backend: StorageBackend=None, **kwargs):
+        """
+        Initializea new `GenericModel`.
+
+        :param source: UUID, file system path, file object or an URL; None means auto.
+        :param dummy: if True, ignore unknown model types.
+        :param cache_dir: The directory where to store the downloaded model.
+        :param backend: Remote storage backend to use if ``source`` is a UUID or a URL.
+        :param kwargs: Everything is passed directly to `Model.__init__`.
+        """
+        super(GenericModel, self).__init__(**kwargs)
         self._models = {m.NAME: m for m in __models__} if not dummy else {}
         self.load(source=source, cache_dir=cache_dir, backend=backend)
 

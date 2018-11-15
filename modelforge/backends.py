@@ -1,6 +1,6 @@
-import logging
-from typing import Type
 from functools import wraps
+import logging
+from typing import Optional, Type, Union
 
 import modelforge.configuration as config
 from modelforge.gcs_backend import GCSBackend
@@ -11,13 +11,15 @@ __registry__ = {b.NAME: b for b in (GCSBackend,)}
 
 
 def register_backend(cls: Type[StorageBackend]):
+    """Decorator to register another StorageBackend using it's `NAME`."""
     if not issubclass(cls, StorageBackend):
         raise TypeError("cls must be a subclass of StorageBackend")
     __registry__[cls.NAME] = cls
     return cls
 
 
-def create_backend(name: str=None, git_index: GitIndex=None, args: str=None):
+def create_backend(name: str=None, git_index: GitIndex=None, args: str=None) -> StorageBackend:
+    """Initialize a new StorageBackend by it's name and the specified model registry."""
     if name is None:
         name = config.BACKEND
     if not args:
@@ -36,7 +38,8 @@ def create_backend(name: str=None, git_index: GitIndex=None, args: str=None):
 
 
 def create_backend_noexc(log: logging.Logger, name: str=None, git_index: GitIndex=None,
-                         args: str=None):
+                         args: str=None) -> Optional[StorageBackend]:
+    """Initialize a new Backend, return None if there was a known problem."""
     try:
         return create_backend(name, git_index, args)
     except KeyError:
@@ -48,9 +51,15 @@ def create_backend_noexc(log: logging.Logger, name: str=None, git_index: GitInde
         return None
 
 
-def supply_backend(optional: bool=False, init: bool=False):
+def supply_backend(optional: Union[callable, bool]=False, index_exists: bool=True):
     """
-    Used by command line entries.
+    Decorator to pass the initialized backend to the decorated callable. \
+    Used by command line entries. If the backend cannot be created, return 1.
+
+    :param optional: Either a decorated function or a value which indicates whether we should \
+                     construct the backend object if it does not exist in the wrapped function's \
+                     `args`: `True` means we shouldn't.
+    :param index_exists: Whether the Git model index exists on the remote side or not.
     """
     real_optional = False if callable(optional) else optional
 
@@ -62,9 +71,10 @@ def supply_backend(optional: bool=False, init: bool=False):
                 backend = None
             else:
                 try:
-                    git_index = GitIndex(index_repo=args.index_repo, username=args.username,
-                                         password=args.password, cache=args.cache, init=init,
-                                         signoff=args.signoff, log_level=args.log_level)
+                    git_index = GitIndex(remote=args.index_repo, username=args.username,
+                                         password=args.password, cache=args.cache,
+                                         exists=index_exists, signoff=args.signoff,
+                                         log_level=args.log_level)
                 except ValueError:
                     return 1
                 backend = create_backend_noexc(log, args.backend, git_index, args.args)

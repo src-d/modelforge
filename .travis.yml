@@ -40,7 +40,7 @@ matrix:
       install: *_install
     - python: 3.7
       env: SCRIPT="flake8 ."
-      install: pip install flake8
+      install: pip install -r requirements-lint.txt
     - python: 3.7
       env: *_coverage
       before_install: *_before_install

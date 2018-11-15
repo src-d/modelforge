@@ -1,25 +1,25 @@
 import datetime
 import inspect
+from io import BytesIO
 import os
 import pickle
+import shutil
 import tempfile
 import unittest
-import shutil
+
 import asdf
 import numpy
-from io import BytesIO
 from scipy.sparse import csr_matrix
 
+from modelforge import configuration
+from modelforge.backends import create_backend
 import modelforge.gcs_backend as back
 import modelforge.index as ind
-import modelforge.tests.fake_dulwich as fake_git
-
-from modelforge import configuration
 from modelforge.meta import generate_meta
-from modelforge.backends import create_backend
-from modelforge.model import merge_strings, split_strings, assemble_sparse_matrix, \
-    disassemble_sparse_matrix, Model
+from modelforge.model import assemble_sparse_matrix, disassemble_sparse_matrix, \
+    merge_strings, Model, split_strings
 from modelforge.models import GenericModel, register_model
+import modelforge.tests.fake_dulwich as fake_git
 from modelforge.tests.fake_requests import FakeRequests
 
 
@@ -139,7 +139,7 @@ class ModelTests(unittest.TestCase):
         ind.Repo = fake_git.FakeRepo
         fake_git.FakeRepo.reset(self.default_index)
         self.backend = create_backend(
-            git_index=ind.GitIndex(index_repo=self.default_url, cache=self.cached_path))
+            git_index=ind.GitIndex(remote=self.default_url, cache=self.cached_path))
 
     def clear(self):
         if os.path.exists(self.cached_path):
@@ -264,11 +264,11 @@ class ModelTests(unittest.TestCase):
         meta = model.meta
         self.assertIsInstance(meta, dict)
         self.assertEqual(meta, {
-            'created_at': datetime.datetime(2017, 6, 19, 9, 59, 14, 766638),
-            'dependencies': [],
-            'model': 'docfreq',
-            'uuid': 'f64bacd4-67fb-4c64-8382-399a8e7db52a',
-            'version': [1, 0, 0]})
+            "created_at": datetime.datetime(2017, 6, 19, 9, 59, 14, 766638),
+            "dependencies": [],
+            "model": "docfreq",
+            "uuid": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
+            "version": [1, 0, 0]})
 
     def test_uninitialized_dump(self):
         text = str(Model4())
@@ -406,7 +406,8 @@ class SerializationTests(unittest.TestCase):
         self.assertEqual(len(dis["data"]), 3)
         self.assertTrue((dis["data"][0] == mat.data).all())
         self.assertTrue((dis["data"][1] == mat.indices).all())
-        self.assertTrue((dis["data"][2] == mat.indptr).all())
+        self.assertTrue((dis["data"][2] == [0] + list(numpy.diff(mat.indptr))).all())
+        self.assertEqual(dis["data"][2].dtype, numpy.uint8)
 
     def test_assemble_sparse_matrix(self):
         tree = {
@@ -421,6 +422,21 @@ class SerializationTests(unittest.TestCase):
         self.assertTrue((mat.data == tree["data"][0]).all())
         self.assertTrue((mat.indices == tree["data"][1]).all())
         self.assertTrue((mat.indptr == tree["data"][2]).all())
+        self.assertEqual(mat.shape, (3, 10))
+        self.assertEqual(mat.dtype, numpy.int)
+
+        tree = {
+            "shape": (3, 10),
+            "format": "csr",
+            "data": [numpy.arange(1, 8),
+                     numpy.array([0, 4, 1, 5, 2, 3, 8]),
+                     numpy.array([0, 2, 2, 3])]
+        }
+        mat = assemble_sparse_matrix(tree)
+        self.assertIsInstance(mat, csr_matrix)
+        self.assertTrue((mat.data == tree["data"][0]).all())
+        self.assertTrue((mat.indices == tree["data"][1]).all())
+        self.assertTrue((mat.indptr == [0, 2, 4, 7]).all())
         self.assertEqual(mat.shape, (3, 10))
         self.assertEqual(mat.dtype, numpy.int)
 

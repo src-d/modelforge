@@ -15,6 +15,7 @@ OVERRIDE_FILE = "modelforgecfg.py"
 
 
 def refresh():
+    """Scan over all the involved directories and load configs from them."""
     override_files = []
     for stack in traceback.extract_stack():
         f = os.path.join(os.path.dirname(stack[0]), OVERRIDE_FILE)

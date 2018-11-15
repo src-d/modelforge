@@ -1,22 +1,23 @@
-import os
+import argparse
 import json
 import logging
-import argparse
+import os
 
 from dateutil.parser import parse as parse_datetime
 
-from modelforge.models import GenericModel
 from modelforge.backends import supply_backend
-from modelforge.storage_backend import StorageBackend, ModelAlreadyExistsError, \
-    ExistingBackendError
 from modelforge.index import GitIndex
 from modelforge.meta import extract_model_meta
+from modelforge.models import GenericModel
+from modelforge.storage_backend import ExistingBackendError, ModelAlreadyExistsError, \
+    StorageBackend
 
 
-@supply_backend(init=True)
+@supply_backend(index_exists=True)
 def initialize_registry(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
     Initialize the registry and the index.
+
     :param args: :class:`argparse.Namespace` with "backend", "args", "force" and "log_level".
     :param backend: Backend which is responsible for working with model files.
     :param log: Logger supplied by supply_backend
@@ -39,8 +40,9 @@ def initialize_registry(args: argparse.Namespace, backend: StorageBackend, log: 
 @supply_backend(optional=True)
 def dump_model(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
-    Prints the information about the model.
-    :param args: :class:`argparse.Namespace` with "input", "backend", "args", "username",
+    Print the information about the model.
+
+    :param args: :class:`argparse.Namespace` with "input", "backend", "args", "username", \
                         "password", "remote_repo" and "log_level".
     :param backend: Backend which is responsible for working with model files.
     :param log: Logger supplied by supply_backend
@@ -59,10 +61,11 @@ def dump_model(args: argparse.Namespace, backend: StorageBackend, log: logging.L
 @supply_backend
 def publish_model(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
-    Pushes the model to Google Cloud Storage and updates the index file.
-    :param args: :class:`argparse.Namespace` with "model", "backend", "args", "force", "meta"
-                        "update_default", "username", "password", "remote_repo", "template_model",
-                        "template_readme" and "log_level"
+    Push the model to Google Cloud Storage and updates the index file.
+
+    :param args: :class:`argparse.Namespace` with "model", "backend", "args", "force", "meta" \
+                 "update_default", "username", "password", "remote_repo", "template_model", \
+                 "template_readme" and "log_level".
     :param backend: Backend which is responsible for working with model files.
     :param log: Logger supplied by supply_backend
     :return: None if successful, 1 otherwise.
@@ -104,13 +107,14 @@ def publish_model(args: argparse.Namespace, backend: StorageBackend, log: loggin
 
 def list_models(args: argparse.Namespace):
     """
-    Outputs the list of known models in the registry.
-    :param args: :class:`argparse.Namespace` with "username", "password", "remote_repo" and
+    Output the list of known models in the registry.
+
+    :param args: :class:`argparse.Namespace` with "username", "password", "remote_repo" and \
                         "log_level"
     :return: None
     """
     try:
-        git_index = GitIndex(index_repo=args.index_repo, username=args.username,
+        git_index = GitIndex(remote=args.index_repo, username=args.username,
                              password=args.password, cache=args.cache, log_level=args.log_level)
     except ValueError:
         return 1
@@ -127,9 +131,10 @@ def list_models(args: argparse.Namespace):
 @supply_backend
 def delete_model(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
-    Deletes a model.
-    :param args: :class:`argparse.Namespace` with "input", "backend", "args", "meta",
-                        "update_default", "username", "password", "remote_repo",
+    Delete a model.
+
+    :param args: :class:`argparse.Namespace` with "input", "backend", "args", "meta", \
+                        "update_default", "username", "password", "remote_repo", \
                         "template_model", "template_readme" and "log_level".
     :param backend: Backend which is responsible for working with model files.
     :param log: Logger supplied by supply_backend

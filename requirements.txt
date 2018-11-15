@@ -1,4 +1,4 @@
-asdf==2.0.1
+asdf==2.2.0
 lz4==2.0.2
 numpy==1.14.0
 scipy==1.0.0
@@ -9,3 +9,5 @@ jinja2 ==2.10
 humanize==0.5.1
 python-dateutil==2.7.3
 requests==2.18.4
+pygtrie==2.3
+xxhash==1.2.0
