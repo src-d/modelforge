@@ -406,7 +406,8 @@ class SerializationTests(unittest.TestCase):
         self.assertEqual(len(dis["data"]), 3)
         self.assertTrue((dis["data"][0] == mat.data).all())
         self.assertTrue((dis["data"][1] == mat.indices).all())
-        self.assertTrue((dis["data"][2] == mat.indptr).all())
+        self.assertTrue((dis["data"][2] == [0] + list(numpy.diff(mat.indptr))).all())
+        self.assertEqual(dis["data"][2].dtype, numpy.uint8)
 
     def test_assemble_sparse_matrix(self):
         tree = {
@@ -421,6 +422,21 @@ class SerializationTests(unittest.TestCase):
         self.assertTrue((mat.data == tree["data"][0]).all())
         self.assertTrue((mat.indices == tree["data"][1]).all())
         self.assertTrue((mat.indptr == tree["data"][2]).all())
+        self.assertEqual(mat.shape, (3, 10))
+        self.assertEqual(mat.dtype, numpy.int)
+
+        tree = {
+            "shape": (3, 10),
+            "format": "csr",
+            "data": [numpy.arange(1, 8),
+                     numpy.array([0, 4, 1, 5, 2, 3, 8]),
+                     numpy.array([0, 2, 2, 3])]
+        }
+        mat = assemble_sparse_matrix(tree)
+        self.assertIsInstance(mat, csr_matrix)
+        self.assertTrue((mat.data == tree["data"][0]).all())
+        self.assertTrue((mat.indices == tree["data"][1]).all())
+        self.assertTrue((mat.indptr == [0, 2, 4, 7]).all())
         self.assertEqual(mat.shape, (3, 10))
         self.assertEqual(mat.dtype, numpy.int)
 

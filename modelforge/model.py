@@ -371,10 +371,10 @@ def merge_strings(list_of_strings: Union[List[str], Tuple[str]]) -> dict:
             offset += len(s)
         strings = numpy.frombuffer(merged, dtype="S%d" % len(merged))
     max_len = 0
-    lengths = []
-    for s in list_of_strings:
+    lengths = [0] * len(list_of_strings)
+    for i, s in enumerate(list_of_strings):
         length = len(s)
-        lengths.append(length)
+        lengths[i] = length
         if length > max_len:
             max_len = length
     bl = max_len.bit_length()
@@ -427,7 +427,18 @@ def disassemble_sparse_matrix(matrix: scipy.sparse.spmatrix) -> dict:
         "format": fmt
     }
     if isinstance(matrix, (scipy.sparse.csr_matrix, scipy.sparse.csc_matrix)):
-        result["data"] = matrix.data, matrix.indices, matrix.indptr
+        lengths = numpy.concatenate(([0], numpy.diff(matrix.indptr)))
+        mlbl = int(lengths.max()).bit_length()
+        if mlbl <= 8:
+            dtype = numpy.uint8
+        elif mlbl <= 16:
+            dtype = numpy.uint16
+        elif mlbl <= 32:
+            dtype = numpy.uint32
+        else:
+            dtype = numpy.uint64
+        lengths = lengths.astype(dtype)
+        result["data"] = matrix.data, matrix.indices, lengths
     elif isinstance(matrix, scipy.sparse.coo_matrix):
         result["data"] = matrix.data, (matrix.row, matrix.col)
     return result
@@ -443,5 +454,10 @@ def assemble_sparse_matrix(subtree: dict) -> scipy.sparse.spmatrix:
     :return: :mod:`scipy.sparse` matrix of the specified format.
     """
     matrix_class = getattr(scipy.sparse, "%s_matrix" % subtree["format"])
+    if subtree["format"] in ("csr", "csc"):
+        indptr = subtree["data"][2]
+        if indptr[-1] != subtree["data"][0].shape[0]:
+            # indptr is diff-ed
+            subtree["data"][2] = indptr.cumsum()
     matrix = matrix_class(tuple(subtree["data"]), shape=subtree["shape"])
     return matrix
