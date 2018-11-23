@@ -11,16 +11,22 @@ except ImportError:
     from pip import get_installed_distributions
 
 
+_env = None
+
+
 def collect_env_info() -> dict:
     """
     Return the version of Python executable, the versions of currently loaded packages and \
     the running platform.
     """
-    return {
-        "python": sys.version,
-        "packages": collect_loaded_packages(),
-        "platform": platform.platform(),
-    }
+    global _env
+    if _env is None:
+        _env = {
+            "python": sys.version,
+            "packages": collect_loaded_packages(),
+            "platform": platform.platform(),
+        }
+    return _env
 
 
 def collect_loaded_packages() -> List[Tuple[str, str]]:

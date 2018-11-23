@@ -389,24 +389,10 @@ def merge_strings(list_of_strings: Union[List[str], Tuple[str]]) -> dict:
             merged[offset:offset + len(s)] = s
             offset += len(s)
         strings = numpy.frombuffer(merged, dtype="S%d" % len(merged))
-    max_len = 0
     lengths = [0] * len(list_of_strings)
     for i, s in enumerate(list_of_strings):
-        length = len(s)
-        lengths[i] = length
-        if length > max_len:
-            max_len = length
-    bl = max_len.bit_length()
-    if bl <= 8:
-        dtype = numpy.uint8
-    elif bl <= 16:
-        dtype = numpy.uint16
-    elif bl <= 32:
-        dtype = numpy.uint32
-    else:
-        raise ValueError("There are very long strings (max length %d)."
-                         % max_len)
-    lengths = numpy.array(lengths, dtype=dtype)
+        lengths[i] = len(s)
+    lengths = squeeze_bits(numpy.array(lengths, dtype=int))
     return {"strings": strings, "lengths": lengths, "str": with_str}
 
 
@@ -449,19 +435,9 @@ def disassemble_sparse_matrix(matrix: scipy.sparse.spmatrix) -> dict:
     }
     if isinstance(matrix, (scipy.sparse.csr_matrix, scipy.sparse.csc_matrix)):
         lengths = numpy.concatenate(([0], numpy.diff(matrix.indptr)))
-        mlbl = int(lengths.max()).bit_length()
-        if mlbl <= 8:
-            dtype = numpy.uint8
-        elif mlbl <= 16:
-            dtype = numpy.uint16
-        elif mlbl <= 32:
-            dtype = numpy.uint32
-        else:
-            dtype = numpy.uint64
-        lengths = lengths.astype(dtype)
-        result["data"] = matrix.data, matrix.indices, lengths
+        result["data"] = matrix.data, squeeze_bits(matrix.indices), squeeze_bits(lengths)
     elif isinstance(matrix, scipy.sparse.coo_matrix):
-        result["data"] = matrix.data, (matrix.row, matrix.col)
+        result["data"] = matrix.data, (squeeze_bits(matrix.row), squeeze_bits(matrix.col))
     return result
 
 
@@ -483,3 +459,20 @@ def assemble_sparse_matrix(subtree: dict) -> scipy.sparse.spmatrix:
             subtree["data"][2] = indptr.cumsum()
     matrix = matrix_class(tuple(subtree["data"]), shape=subtree["shape"])
     return matrix
+
+
+def squeeze_bits(arr: numpy.ndarray) -> numpy.ndarray:
+    """Return a copy of an integer numpy array with the minimum bitness."""
+    assert arr.dtype.kind in ("i", "u")
+    if arr.dtype.kind == "i":
+        assert arr.min() >= 0
+    mlbl = int(arr.max()).bit_length()
+    if mlbl <= 8:
+        dtype = numpy.uint8
+    elif mlbl <= 16:
+        dtype = numpy.uint16
+    elif mlbl <= 32:
+        dtype = numpy.uint32
+    else:
+        dtype = numpy.uint64
+    return arr.astype(dtype)
