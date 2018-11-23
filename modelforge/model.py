@@ -14,6 +14,7 @@ import pygtrie
 import scipy.sparse
 
 import modelforge.configuration as config
+from modelforge.environment import collect_env_info
 from modelforge.meta import generate_meta
 from modelforge.storage_backend import StorageBackend
 
@@ -147,23 +148,26 @@ class Model:
         """
         return self._meta
 
-    def metaprop(name):
+    def metaprop(name: str, readonly=False):
         """Temporary property builder."""
         def get(self):
             return self.meta[name]
 
-        def set(self, value):
-            self.meta[name] = value
+        if not readonly:
+            def set(self, value):
+                self.meta[name] = value
 
-        return property(get, set)
+            return property(get, set)
+        return property(get)
 
-    uuid = metaprop("uuid")
+    uuid = metaprop("uuid", readonly=True)
     description = metaprop("description")
     references = metaprop("references")
     extra = metaprop("extra")
-    created_at = metaprop("created_at")
-    version = metaprop("version")
-    parent = metaprop("parent")
+    environment = metaprop("environment", readonly=True)
+    created_at = metaprop("created_at", readonly=True)
+    version = metaprop("version", readonly=True)
+    parent = metaprop("parent", readonly=True)
     license = metaprop("license")
 
     del metaprop
@@ -319,6 +323,7 @@ class Model:
         """
         meta = self.meta.copy()
         meta.pop("__init__", None)
+        meta["environment"] = collect_env_info()
         final_tree = {"meta": meta}
         final_tree.update(tree)
         with asdf.AsdfFile(final_tree) as file:
