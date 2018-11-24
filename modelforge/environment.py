@@ -40,7 +40,9 @@ def collect_loaded_packages() -> List[Tuple[str, str]]:
         for file in get_dist_files(dist):
             file_table[file] = dist
     used_dists = set()
-    for module in sys.modules.values():
+    # we greedily load all values to a list to avoid weird
+    # "dictionary changed size during iteration" errors
+    for module in list(sys.modules.values()):
         try:
             dist = file_table[module.__file__]
         except (AttributeError, KeyError):
