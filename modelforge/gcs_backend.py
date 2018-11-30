@@ -1,24 +1,20 @@
 import io
 import logging
-import math
 import os
 from typing import BinaryIO, Union
 
 from clint.textui import progress
 from google.cloud.exceptions import NotFound
-import requests
 
 from modelforge.index import GitIndex
-from modelforge.progress_bar import progress_bar
-from modelforge.storage_backend import BackendRequiredError, ExistingBackendError, \
-    ModelAlreadyExistsError, StorageBackend
+from modelforge.storage_backend import BackendRequiredError, DEFAULT_DOWNLOAD_CHUNK_SIZE, \
+    download_http, ExistingBackendError, ModelAlreadyExistsError, StorageBackend
 
 
 class GCSBackend(StorageBackend):
     """Google Cloud Storage backend. Each model file is a blob."""
 
     NAME = "gcs"
-    DEFAULT_CHUNK_SIZE = 65536
 
     class _Tracker:
         """
@@ -154,33 +150,9 @@ class GCSBackend(StorageBackend):
         return blob.public_url
 
     def fetch_model(self, source: str, file: Union[str, BinaryIO],
-                    chunk_size: int=DEFAULT_CHUNK_SIZE) -> None:
-        """Take the model from GCS."""
-        self._log.info("Fetching %s...", source)
-        r = requests.get(source, stream=True)
-        if r.status_code != 200:
-            self._log.error(
-                "An error occurred while fetching the model, with code %s" % r.status_code)
-            raise ValueError
-        if isinstance(file, str):
-            os.makedirs(os.path.dirname(file), exist_ok=True)
-            f = open(file, "wb")
-        else:
-            f = file
-        try:
-            total_length = int(r.headers.get("content-length"))
-            num_chunks = math.ceil(total_length / chunk_size)
-            if num_chunks == 1:
-                f.write(r.content)
-            else:
-                for chunk in progress_bar(
-                        r.iter_content(chunk_size=chunk_size),
-                        self._log, expected_size=num_chunks):
-                    if chunk:
-                        f.write(chunk)
-        finally:
-            if isinstance(file, str):
-                f.close()
+                    chunk_size: int=DEFAULT_DOWNLOAD_CHUNK_SIZE) -> None:
+        """Download the model from GCS."""
+        download_http(source, file, self._log, chunk_size)
 
     def delete_model(self, meta: dict):
         """Delete the model from GCS."""

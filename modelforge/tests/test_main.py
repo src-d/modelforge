@@ -7,7 +7,7 @@ import modelforge.__main__ as main
 
 class MainTests(unittest.TestCase):
     def test_handlers(self):
-        handlers = [False] * 5
+        handlers = [False] * 6
 
         def backend_args(args):
             self.assertTrue(hasattr(args, "backend"))
@@ -24,11 +24,19 @@ class MainTests(unittest.TestCase):
             self.assertTrue(hasattr(args, "template_model"))
             self.assertTrue(hasattr(args, "template_readme"))
 
+        def install_environment(args):
+            self.assertTrue(hasattr(args, "input"))
+            self.assertTrue(hasattr(args, "reproduce"))
+            self.assertTrue(hasattr(args, "pip"))
+            backend_args(args)
+            index_args(args)
+            handlers[0] = True
+
         def dump_model(args):
             self.assertTrue(hasattr(args, "input"))
             backend_args(args)
             index_args(args)
-            handlers[0] = True
+            handlers[1] = True
 
         def publish_model(args):
             self.assertTrue(hasattr(args, "model"))
@@ -38,25 +46,26 @@ class MainTests(unittest.TestCase):
             backend_args(args)
             index_args(args)
             template_args(args)
-            handlers[1] = True
+            handlers[2] = True
 
         def list_models(args):
             index_args(args)
-            handlers[2] = True
+            handlers[3] = True
 
         def initialize_registry(args):
             self.assertTrue(hasattr(args, "force"))
             backend_args(args)
             index_args(args)
-            handlers[3] = True
+            handlers[4] = True
 
         def delete_model(args):
             self.assertTrue(hasattr(args, "input"))
             backend_args(args)
             index_args(args)
             template_args(args)
-            handlers[4] = True
+            handlers[5] = True
 
+        main.install_environment = install_environment
         main.dump_model = dump_model
         main.publish_model = publish_model
         main.list_models = list_models
@@ -66,13 +75,13 @@ class MainTests(unittest.TestCase):
         error = argparse.ArgumentParser.error
         argparse.ArgumentParser.error = lambda self, message: None
 
-        for action in ("dump", "publish", "list", "init", "delete"):
+        for action in ("dump", "publish", "list", "init", "delete", "install"):
             sys.argv = [main.__file__, action]
             main.main()
 
         sys.argv = args
         argparse.ArgumentParser.error = error
-        self.assertEqual(sum(handlers), 5)
+        self.assertEqual(sum(handlers), 6)
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ def collect_env_info() -> dict:
     global _env
     if _env is None:
         _env = {
-            "python": sys.version,
+            "python": sys.version.replace("\n", ""),
             "packages": collect_loaded_packages(),
             "platform": platform.platform(),
         }

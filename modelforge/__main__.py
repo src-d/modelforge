@@ -4,8 +4,9 @@ import os
 import sys
 
 from modelforge import slogging
-from modelforge.registry import delete_model, dump_model, initialize_registry, list_models, \
+from modelforge.registry import delete_model, initialize_registry, list_models, \
     publish_model
+from modelforge.tools import dump_model, install_environment
 
 
 def main():
@@ -65,6 +66,19 @@ def main():
         "input", help="Path to the model file, URL or UUID.")
     add_index_args(dump_parser)
     add_backend_args(dump_parser)
+    # ------------------------------------------------------------------------
+    install_parser = subparsers.add_parser(
+        "install", help="Install the environment to run the model.")
+    install_parser.set_defaults(handler=install_environment)
+    install_parser.add_argument(
+        "input", help="Path to the model file, URL or UUID.")
+    install_parser.add_argument(
+        "--reproduce", action="store_true",
+        help="Ensure that training the model is possible.")
+    install_parser.add_argument(
+        "--pip", nargs="*", help="Additional arguments to pass to pip.")
+    add_index_args(install_parser)
+    add_backend_args(install_parser)
     # ------------------------------------------------------------------------
     publish_parser = subparsers.add_parser(
         "publish", help="Upload the model and update the registry.")
