@@ -11,9 +11,8 @@ import asdf
 import numpy
 from scipy.sparse import csr_matrix
 
-from modelforge import configuration
+from modelforge import configuration, storage_backend
 from modelforge.backends import create_backend
-import modelforge.gcs_backend as back
 import modelforge.index as ind
 from modelforge.meta import generate_meta
 from modelforge.model import assemble_sparse_matrix, disassemble_sparse_matrix, \
@@ -25,17 +24,19 @@ from modelforge.tests.fake_requests import FakeRequests
 
 @register_model
 class FakeDocfreqModel(Model):
-
     NAME = "docfreq"
+    VENDOR = "source{d}"
+    tree = {}
 
     def _load_tree(self, tree):
         self.docs = tree["docs"]
+        self.tree = tree
 
     def dump(self):
         return str(self.docs)
 
     def _generate_tree(self) -> dict:
-        pass
+        return self.tree
 
 
 class Model1(Model):
@@ -110,14 +111,14 @@ def get_path(name):
 
 
 class ModelTests(unittest.TestCase):
-    DOCFREQ_PATH = "test.asdf"
+    MODEL_PATH = "test.asdf"
     cached_path = "/tmp/modelforge-test-cache"
     default_url = "https://github.com/src-d/models"
     templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
     default_index = {
         "models": {
             "docfreq": {
-                "f64bacd4-67fb-4c64-8382-399a8e7db52a": {
+                "ddf87ec7-ead2-423c-b9b3-d08ce4bd2192": {
                     "url": "https://xxx",
                     "created_at": "13:00",
                     "code": "model_code %s",
@@ -132,7 +133,7 @@ class ModelTests(unittest.TestCase):
             "docfreq": {
                 "code": "readme_code %s",
                 "description": "readme_description",
-                "default": "f64bacd4-67fb-4c64-8382-399a8e7db52a"}}}
+                "default": "ddf87ec7-ead2-423c-b9b3-d08ce4bd2192"}}}
 
     def setUp(self):
         ind.git = fake_git
@@ -153,38 +154,38 @@ class ModelTests(unittest.TestCase):
         ind.git = git
 
     def test_file(self):
-        model = GenericModel(source=get_path(self.DOCFREQ_PATH))
+        model = GenericModel(source=get_path(self.MODEL_PATH))
         self._validate_meta(model)
         vendor = configuration.VENDOR
         configuration.VENDOR = None
         try:
-            model = GenericModel(source=get_path(self.DOCFREQ_PATH))
+            model = GenericModel(source=get_path(self.MODEL_PATH))
             self._validate_meta(model)
         finally:
             configuration.VENDOR = vendor
 
     def test_error(self):
         with self.assertRaises(ValueError):
-            GenericModel(source="f64bacd4-67fb-4c64-8382-399a8e7db52a")
+            GenericModel(source="ddf87ec7-ead2-423c-b9b3-d08ce4bd2192")
 
     def test_id(self):
         def route(url):
             self.assertEqual("https://xxx", url)
-            with open(get_path(self.DOCFREQ_PATH), "rb") as fin:
+            with open(get_path(self.MODEL_PATH), "rb") as fin:
                 return fin.read()
 
-        back.requests = FakeRequests(route)
+        storage_backend.requests = FakeRequests(route)
         model = GenericModel(
-            source="f64bacd4-67fb-4c64-8382-399a8e7db52a", backend=self.backend)
+            source="ddf87ec7-ead2-423c-b9b3-d08ce4bd2192", backend=self.backend)
         self._validate_meta(model)
 
     def test_url(self):
         def route(url):
             self.assertEqual("https://xxx", url)
-            with open(get_path(self.DOCFREQ_PATH), "rb") as fin:
+            with open(get_path(self.MODEL_PATH), "rb") as fin:
                 return fin.read()
 
-        back.requests = FakeRequests(route)
+        storage_backend.requests = FakeRequests(route)
         model = GenericModel(source="https://xxx", backend=self.backend)
         self._validate_meta(model)
 
@@ -194,10 +195,10 @@ class ModelTests(unittest.TestCase):
 
         def route(url):
             self.assertEqual("https://xxx", url)
-            with open(get_path(self.DOCFREQ_PATH), "rb") as fin:
+            with open(get_path(self.MODEL_PATH), "rb") as fin:
                 return fin.read()
 
-        back.requests = FakeRequests(route)
+        storage_backend.requests = FakeRequests(route)
         model = FakeModel(backend=self.backend)
         self._validate_meta(model)
 
@@ -206,12 +207,12 @@ class ModelTests(unittest.TestCase):
             self.assertEqual("https://bad_code", url)
             return 404
 
-        back.requests = FakeRequests(route)
+        storage_backend.requests = FakeRequests(route)
         with self.assertRaises(ValueError):
             GenericModel(source="https://bad_code", backend=self.backend)
 
     def test_init_with_model(self):
-        model1 = Model1().load(source=get_path(self.DOCFREQ_PATH))
+        model1 = Model1().load(source=get_path(self.MODEL_PATH))
         # init with correct model
         Model1(source=model1)
         # init with wrong model
@@ -220,7 +221,7 @@ class ModelTests(unittest.TestCase):
 
     def test_repr_str(self):
         self.maxDiff = None
-        path = get_path(self.DOCFREQ_PATH)
+        path = get_path(self.MODEL_PATH)
         model = Model1().load(source=path)
         repr1 = repr(model)
         try:
@@ -229,19 +230,19 @@ class ModelTests(unittest.TestCase):
             self.assertEqual("modelforge.tests.test_model.Model1().load(source=\"%s\")"
                              % path, repr1)
         str1 = str(model)
-        self.assertEqual(len(str1.split("\n")), 6)
+        self.assertEqual(len(str1.split("\n")), 10)
         self.assertIn("\nmodel1", str1)
-        self.assertIn("'uuid': 'f64bacd4-67fb-4c64-8382-399a8e7db52a'", str1)
+        self.assertIn("'uuid': 'ddf87ec7-ead2-423c-b9b3-d08ce4bd2192'", str1)
         model = Model3().load(source=path)
         str2 = str(model)
-        self.assertEqual(len(str2.split("\n")), 5)
+        self.assertEqual(len(str2.split("\n")), 9)
         model = FakeDocfreqModel().load(source=path)
         repr2 = repr(model)
         self.assertEqual("[%s].FakeDocfreqModel().load(source=\"%s\")"
                          % (os.path.realpath(__file__), path), repr2)
 
     def test_repr_main(self):
-        path = get_path(self.DOCFREQ_PATH)
+        path = get_path(self.MODEL_PATH)
         model = Model1().load(source=path)
         module = inspect.getmodule(model)
         module.__name__ = "__main__"
@@ -255,7 +256,7 @@ class ModelTests(unittest.TestCase):
         self.assertEqual("[unknown].Model1().load(source=\"%s\")" % path, repr2)
 
     def test_get_dep(self):
-        model = Model1().load(source=get_path(self.DOCFREQ_PATH))
+        model = Model1().load(source=get_path(self.MODEL_PATH))
         model.meta["dependencies"] = [{"model": "xxx", "uuid": "yyy"},
                                       {"model": "zzz", "uuid": None}]
         self.assertEqual(model.get_dep("xxx")["uuid"], "yyy")
@@ -263,12 +264,16 @@ class ModelTests(unittest.TestCase):
     def _validate_meta(self, model):
         meta = model.meta
         self.assertIsInstance(meta, dict)
-        self.assertEqual(meta, {
+        valid_meta = {
             "created_at": datetime.datetime(2017, 6, 19, 9, 59, 14, 766638),
             "dependencies": [],
             "model": "docfreq",
-            "uuid": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
-            "version": [1, 0, 0]})
+            "parent": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
+            "uuid": "ddf87ec7-ead2-423c-b9b3-d08ce4bd2192",
+            "version": [1, 0, 1]
+        }
+        for key, val in valid_meta.items():
+            self.assertEqual(meta[key], val, key)
 
     def test_uninitialized_dump(self):
         text = str(Model4())
@@ -278,16 +283,16 @@ class ModelTests(unittest.TestCase):
             self.assertEqual("modelforge.tests.test_model.Model4().load(source=None)", text)
 
     def test_name_check(self):
-        Model5().load(source=get_path(self.DOCFREQ_PATH))
-        Model6().load(source=get_path(self.DOCFREQ_PATH))
+        Model5().load(source=get_path(self.MODEL_PATH))
+        Model6().load(source=get_path(self.MODEL_PATH))
         with self.assertRaises(ValueError):
-            Model7().load(source=get_path(self.DOCFREQ_PATH))
+            Model7().load(source=get_path(self.MODEL_PATH))
 
     def test_derive(self):
-        path = get_path(self.DOCFREQ_PATH)
+        path = get_path(self.MODEL_PATH)
         model = Model1().load(source=path)
         m2 = model.derive()
-        self.assertEqual(m2.version, [1, 0, 1])
+        self.assertEqual(m2.version, [1, 0, 2])
         model.derive((2, 0, 0))
         self.assertEqual(m2.version, [2, 0, 0])
         with self.assertRaises(ValueError):
@@ -306,12 +311,12 @@ class ModelTests(unittest.TestCase):
         self.assertIs(model1.get_dep("model2"), model2.meta)
 
     def test_props(self):
-        path = get_path(self.DOCFREQ_PATH)
+        path = get_path(self.MODEL_PATH)
         model = Model1().load(source=path)
-        for n in ("description", "references", "extra", "parent", "license"):
+        for n in ("description", "references", "datasets", "license"):
             with self.assertRaises(KeyError):
                 getattr(model, n)
-        self.assertEqual(model.version, [1, 0, 0])
+        self.assertEqual(model.version, [1, 0, 1])
         self.assertEqual(model.created_at, datetime.datetime(2017, 6, 19, 9, 59, 14, 766638))
 
     def test_init_version(self):
@@ -446,7 +451,8 @@ class SerializationTests(unittest.TestCase):
         docfreq_rec = pickle.loads(res)
 
         for k in docfreq.__dict__:
-            self.assertEqual(docfreq.__dict__[k], docfreq_rec.__dict__[k])
+            if k != "tree":
+                self.assertEqual(getattr(docfreq, k), getattr(docfreq_rec, k), k)
 
     def test_write(self):
         model = Model()

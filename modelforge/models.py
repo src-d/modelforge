@@ -30,7 +30,7 @@ class GenericModel(Model):
     def __init__(self, source: Union[str, "Model"]=None, dummy=False, cache_dir: str=None,
                  backend: StorageBackend=None, **kwargs):
         """
-        Initializea new `GenericModel`.
+        Initialize a new `GenericModel`.
 
         :param source: UUID, file system path, file object or an URL; None means auto.
         :param dummy: if True, ignore unknown model types.
@@ -49,6 +49,7 @@ class GenericModel(Model):
                 raise ValueError("Unknown model: %s" % self.meta["model"])
             return
         # we overwrite our class - shady, but works
+        delattr(self, "_models")
         self.__class__ = model
         log_level = self._log.level
         self._log = logging.getLogger(self.NAME)

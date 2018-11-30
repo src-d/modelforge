@@ -1,3 +1,4 @@
+from copy import deepcopy
 import inspect
 import logging
 import os
@@ -163,7 +164,7 @@ class Model:
     uuid = metaprop("uuid", readonly=True)
     description = metaprop("description")
     references = metaprop("references")
-    extra = metaprop("extra")
+    datasets = metaprop("datasets")
     environment = metaprop("environment", readonly=True)
     created_at = metaprop("created_at", readonly=True)
     version = metaprop("version", readonly=True)
@@ -216,7 +217,13 @@ class Model:
             return repr(self)
         if dump:
             dump = "\n" + dump
-        return "%s%s" % (pformat(self.meta), dump)
+        meta = deepcopy(self.meta)
+        try:
+            meta["environment"]["packages"] = \
+                " ".join("%s==%s" % tuple(p) for p in self.environment["packages"])
+        except KeyError:
+            pass
+        return "%s%s" % (pformat(meta, width=1024), dump)
 
     def __repr__(self):
         """Format model object as a string."""
@@ -238,8 +245,25 @@ class Model:
         """
         Fix pickling.
         """
-        state = self.__dict__.copy()
-        state["_log"] = self._log.level
+        state = {
+            "_log": self._log.level,
+            "_meta": self._meta,
+            "_compression_prefixes": self._compression_prefixes,
+            "_source": self._source,
+            "tree": self._generate_tree()
+        }
+        # ensure that there are no ndarray proxies which cannot be pickled
+        queue = [(None, None, state["tree"])]
+        while queue:
+            parent, key, element = queue.pop()
+            if isinstance(element, dict):
+                for key, val in element.items():
+                    queue.append((element, key, val))
+            elif isinstance(element, (list, tuple)):
+                for i, child in enumerate(element):
+                    queue.append((element, i, child))
+            elif isinstance(element, asdf.tags.core.ndarray.NDArrayType):
+                parent[key] = element.__array__()
         return state
 
     def __setstate__(self, state):
@@ -247,9 +271,13 @@ class Model:
         Fix unpickling.
         """
         log_level = state["_log"]
-        self.__dict__.update(state)
         self._log = logging.getLogger(self.NAME)
         self._log.setLevel(log_level)
+        self._meta = state["_meta"]
+        self._compression_prefixes = state["_compression_prefixes"]
+        self._asdf = None
+        self._source = state["_source"]
+        self._load_tree(state["tree"])
 
     @staticmethod
     def cache_dir() -> str:
@@ -324,8 +352,9 @@ class Model:
         meta = self.meta.copy()
         meta.pop("__init__", None)
         meta["environment"] = collect_env_info()
-        final_tree = {"meta": meta}
+        final_tree = {}
         final_tree.update(tree)
+        final_tree["meta"] = meta
         with asdf.AsdfFile(final_tree) as file:
             queue = [("", tree)]
             while queue:

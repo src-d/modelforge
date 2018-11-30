@@ -37,27 +37,6 @@ def initialize_registry(args: argparse.Namespace, backend: StorageBackend, log: 
     log.info("Successfully initialized")
 
 
-@supply_backend(optional=True)
-def dump_model(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
-    """
-    Print the information about the model.
-
-    :param args: :class:`argparse.Namespace` with "input", "backend", "args", "username", \
-                        "password", "remote_repo" and "log_level".
-    :param backend: Backend which is responsible for working with model files.
-    :param log: Logger supplied by supply_backend
-    :return: None
-    """
-    try:
-        print(GenericModel(args.input, backend=backend))
-    except ValueError as e:
-        log.critical('"input" must be a path: %s', e)
-        return 1
-    except Exception as e:
-        log.critical("Failed to load the model: %s: %s" % (type(e).__name__, e))
-        return 1
-
-
 @supply_backend
 def publish_model(args: argparse.Namespace, backend: StorageBackend, log: logging.Logger):
     """
