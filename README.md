@@ -1,72 +1,54 @@
 # Modelforge [![Build Status](https://travis-ci.org/src-d/modelforge.svg)](https://travis-ci.org/src-d/modelforge) [![codecov](https://codecov.io/github/src-d/modelforge/coverage.svg)](https://codecov.io/gh/src-d/modelforge) [![PyPI](https://img.shields.io/pypi/v/modelforge.svg)](https://pypi.python.org/pypi/modelforge)
 
-This project is the foundation for sharing machine learning models. It implements a git based
-index to maintain the *registry*, the remote storage where all model files are stored in a 
-structured, cataloged way. It defines `modelforge.Model`, the base class for all the models which 
-is capable of automatic fetching from the registry. It provides the abstraction over managing 
-models on disk as well.
+Modelforge is a foundation for sharing trained machine learning models. It is a set of command line
+tools and a Python library. Modelforge maintains model files in a third-party remote storage service
+("cloud") using the backend mechanism. Model metadata (download links, names, descriptions, versions,
+etc.) resides in a Git repository called the "Index", and documentation is automatically generated
+there. Modelforge does no assumptions about the models: they can be of any origin, such as TensorFlow,
+scikit-learn, or your custom. The underlying model storage format
+- [Advanced Scientific Data Format](https://github.com/spacetelescope/asdf) - can wrap any data
+easily and efficiently, but it's the developer's responsibility to convert.
 
-Each model receives a UUID and carries other metadata. The underlying file format is
-[ASDF](https://github.com/spacetelescope/asdf).
+Learn more about:
 
-Currently, only one registry storage backend is supported: Google Cloud Storage. Our index is
-stored at [src-d/models](https://github.com/src-d/models).
+* [Why?](doc/why.md) - what problem Modelforge tries to solve.
+* [Modelforge model](doc/model.md) - what is a model in Modelforge context.
+* [Model storage format](doc/model_storage_format.md) - low-level serialization details.
+* [Backends](doc/backends.md) - extension system to upload and download models from clouds.
+* [Git Index](doc/git_index.md) - how documentation about the models is generated from the structured metadata.
+* [Command line tools](doc/cmdline.md) - how to perform typical operations.
+* [API](doc/api.md) - Modelforge API for developers.
 
-[src-d/ml](https://github.com/src-d/ml) uses `modelforge` to make ML on source code accessible
-for everybody.
+#### Who uses Modelforge?
 
+* source{d}, in [src-d/ml](https://github.com/src-d/ml) and [src-d/lookout-sdk-ml](https://github.com/src-d/lookout-sdk-ml); the public index is [src-d/models](https://github.com/src-d/models).
 
 ## Install
+
+You can run Modelforge through Docker:
+```
+docker run -it --rm srcd/modelforge --help
+```
+
+or install it using the [Python package manager](https://github.com/pypa/pip):
 
 ```
 pip3 install modelforge
 ```
 
-
 ## Usage
 
-The project exposes two interfaces: [API](doc/api.md) and [command line](doc/cmd.md).
-
-
-#### Configuration
-
-When using Modelforge, it is possible to store default values, whether you are using the package as
-an API or with the command line. To do so, simply create a `modelforgecfg.py` anywhere in your 
-project tree or directly in the `package`, and modify the following values to suit your needs:
-
-```
-VENDOR = "user"  # name of the issuing vendor for models
-BACKEND = "gcs"  # type of backend to use
-BACKEND_ARGS = "bucket='user_bucket.models',credentials='key.json'"  # all backend arguments 
-INDEX_REPO = "https://github.com/user/models"  # git repo for the index
-CACHE_DIR = "~/.cache/modelforge"  # default cache to use for the index
-ALWAYS_SIGNOFF = True  # whether to add a DCO line on each commit message
-```
-
-
-#### Docker image
-
-```
-docker build -t srcd/modelforge .
-docker run -it --rm srcd/modelforge --help
-```
-
+The project exposes two interfaces: [command line](doc/cmdline.md) and [API](doc/api.md).
 
 ## Contributions
-[![PEP8](https://img.shields.io/badge/code%20style-pep8-orange.svg)](https://www.python.org/dev/peps/pep-0008/)
+Contributions are pretty much welcome! Please follow the [contributions guide](doc/contributing.md)
+and the [code of conduct](doc/code_of_conduct.md).
 
-We use [PEP8](https://www.python.org/dev/peps/pep-0008/) with line length 99 and ". All the tests
-must pass:
-
-```
-python3 -m unittest discover /path/to/modelforge
-```
-
-If you wish to make your model available in [src-d/models](https://github.com/src-d/models), please 
-clone the repository and use the `publish` command to upload your model on your fork, then, simply 
-open a PR. If you are using your own backend, don't forget to add read access to everybody. If you
-wish to publish the model our GCS bucket, feel free to open an issue to contact us.
+If you wish to make your MLonCode model available in [src-d/models](https://github.com/src-d/models),
+please  fork that repository and run `modelforge publish` to upload your model on your fork. Then
+create a pull request. You should provide read access to the model file for everybody. If you
+consider using our Google Cloud Storage bucket, feel free to contact us through GitHub issues.
 
 ## License
 
-[Apache v2.0](LICENSE).
+[Apache 2.0](LICENSE).
