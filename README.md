@@ -1,4 +1,4 @@
-# Modelforge [![Build Status](https://travis-ci.org/src-d/modelforge.svg)](https://travis-ci.org/src-d/modelforge) [![codecov](https://codecov.io/github/src-d/modelforge/coverage.svg)](https://codecov.io/gh/src-d/modelforge) [![PyPI](https://img.shields.io/pypi/v/modelforge.svg)](https://pypi.python.org/pypi/modelforge)
+# Modelforge [![docs on gitbook](https://img.shields.io/badge/docs-gitbook-brightgreen.svg)](https://docs.sourced.tech/modelforge/) [![Build Status](https://travis-ci.org/src-d/modelforge.svg)](https://travis-ci.org/src-d/modelforge) [![codecov](https://codecov.io/github/src-d/modelforge/coverage.svg)](https://codecov.io/gh/src-d/modelforge) [![PyPI](https://img.shields.io/pypi/v/modelforge.svg)](https://pypi.python.org/pypi/modelforge)
 
 Modelforge is a foundation for sharing trained machine learning models. It is a set of command line
 tools and a Python library. Modelforge maintains model files in a third-party remote storage service
