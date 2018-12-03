@@ -11,3 +11,4 @@ python-dateutil==2.7.3
 requests==2.18.4
 pygtrie==2.3
 xxhash==1.2.0
+spdx==2.5.0

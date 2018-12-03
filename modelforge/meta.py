@@ -1,50 +1,73 @@
 from datetime import datetime
-from typing import Sequence
 import uuid
 
 import humanize
 import requests
+import spdx
 
-ARRAY_COMPRESSION = "zlib"
+LICENSES = {l["id"] for l in spdx.licenses()}.union({"Proprietary"})
 
 
-def generate_meta(name: str, version: Sequence, *deps) -> dict:
+def check_license(license: str):
+    """
+    Ensure that the license identifier is SPDX-compliant (or is "Proprietary").
+
+    :param license: License identifier.
+    :return: None
+    """
+    if license not in LICENSES:
+        raise ValueError("license must be an SPDX-compliant identifier or \"Proprietary\"")
+
+
+def generate_new_meta(name: str, description: str, license: str) -> dict:
     """
     Create the metadata tree for the given model name and the list of dependencies.
 
-    :param name: The model's name.
-    :param version: The caller's version - used to check the format match.
-    :param deps: The list of metas this model depends on. Can be either models or dicts.
+    :param name: Name of the model.
+    :param description: Description of the model.
+    :param license: License identifier.
     :return: dict with the metadata.
     """
+    check_license(license)
     return {
         "model": name,
         "uuid": str(uuid.uuid4()),
-        "dependencies": [(d.meta if not isinstance(d, dict) else d)
-                         for d in deps],
-        "version": list(version),
-        "created_at": datetime.now()
+        "dependencies": [],
+        "version": [1, 0, 0],
+        "created_at": datetime.now(),
+        "description": description,
+        "license": license,
+        "parent": None,
     }
+
+
+def format_datetime(dt: datetime) -> str:
+    """
+    Format a datetime object as string.
+
+    :param dt: Date and time to format.
+    :return: String representation.
+    """
+    return dt.strftime("%Y-%m-%d %H:%M:%S%z")
 
 
 def extract_model_meta(base_meta: dict, extra_meta: dict, model_url: str) -> dict:
     """
     Merge the metadata from the backend and the extra metadata into a dict which is suitable for \
-    index.json.
+    `index.json`.
 
-    :param base_meta: tree["meta"] :class:`dict` containing data from the backend
-    :param extra_meta: dict containing data from the user, similar to `template_meta.json`
-    :param model_url: public URL of the model
+    :param base_meta: tree["meta"] :class:`dict` containing data from the backend.
+    :param extra_meta: dict containing data from the user, similar to `template_meta.json`.
+    :param model_url: public URL of the model.
     :return: converted dict.
     """
-    meta = {"default": {"default": base_meta["uuid"], "code": extra_meta["code"],
-                        "description": extra_meta["description"]}}
+    meta = {"default": {"default": base_meta["uuid"], "description": base_meta["description"]}}
     del base_meta["model"]
     del base_meta["uuid"]
     meta["model"] = base_meta
-    meta["model"].update(extra_meta["model"])
+    meta["model"].update({k: extra_meta[k] for k in ("code", "datasets", "references")})
     response = requests.get(model_url, stream=True)
     meta["model"]["size"] = humanize.naturalsize(int(response.headers["content-length"]))
-    meta["model"]["url"] = model_url
-    meta["model"]["created_at"] = str(meta["model"]["created_at"])
+    meta["model"]["source"] = model_url
+    meta["model"]["created_at"] = format_datetime(meta["model"]["created_at"])
     return meta

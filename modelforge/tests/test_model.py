@@ -6,6 +6,7 @@ import pickle
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import asdf
 import numpy
@@ -14,7 +15,7 @@ from scipy.sparse import csr_matrix
 from modelforge import configuration, storage_backend
 from modelforge.backends import create_backend
 import modelforge.index as ind
-from modelforge.meta import generate_meta
+from modelforge.meta import generate_new_meta
 from modelforge.model import assemble_sparse_matrix, disassemble_sparse_matrix, \
     merge_strings, Model, split_strings
 from modelforge.models import GenericModel, register_model
@@ -26,6 +27,7 @@ from modelforge.tests.fake_requests import FakeRequests
 class FakeDocfreqModel(Model):
     NAME = "docfreq"
     VENDOR = "source{d}"
+    DESCRIPTION = "document frequencies"
     tree = {}
 
     def _load_tree(self, tree):
@@ -40,6 +42,10 @@ class FakeDocfreqModel(Model):
 
 
 class Model1(Model):
+    NAME = "model1"
+    VENDOR = "source{d}"
+    DESCRIPTION = "model1"
+
     def _load_tree(self, tree):
         pass
 
@@ -49,6 +55,8 @@ class Model1(Model):
 
 class Model2(Model):
     NAME = "model2"
+    VENDOR = "source{d}"
+    DESCRIPTION = "model2"
 
     def _load_tree(self, tree):
         pass
@@ -58,17 +66,27 @@ class Model2(Model):
 
 
 class Model3(Model):
+    NAME = "model3"
+    VENDOR = "source{d}"
+    DESCRIPTION = "model3"
+
     def _load_tree(self, tree):
         pass
 
 
 class Model4(Model):
+    NAME = "model4"
+    VENDOR = "source{d}"
+    DESCRIPTION = "model4"
+
     def dump(self):
         return str(self.xxx)
 
 
 class Model5(Model):
     NAME = "aux"
+    VENDOR = "source{d}"
+    DESCRIPTION = "aux"
 
     def _load_tree(self, tree):
         pass
@@ -76,6 +94,8 @@ class Model5(Model):
 
 class Model6(Model5):
     NAME = "docfreq"
+    VENDOR = "source{d}"
+    DESCRIPTION = "docfreq"
 
     def _load_tree(self, tree):
         pass
@@ -83,6 +103,8 @@ class Model6(Model5):
 
 class Model7(Model6):
     NAME = "xxx"
+    VENDOR = "source{d}"
+    DESCRIPTION = "xxx"
 
     def _load_tree(self, tree):
         pass
@@ -90,6 +112,8 @@ class Model7(Model6):
 
 class Model8(Model):
     NAME = "model8"
+    VENDOR = "source{d}"
+    DESCRIPTION = "model8"
 
     def _load_tree(self, tree):
         self.tree = tree
@@ -110,6 +134,17 @@ def get_path(name):
     return os.path.join(os.path.dirname(__file__), name)
 
 
+def generate_meta(name, version):
+    meta = generate_new_meta(name, "test", "Proprietary")
+    meta["version"] = version
+    return meta
+
+
+UUID = "dd6a841c-94e1-47f4-8029-b9aabb32505e"
+PARENT_UUID = "6ab2376a-68e4-4668-be85-1ae23beedd1a"
+SIZE = 110690  # do *not* use os.stat
+
+
 class ModelTests(unittest.TestCase):
     MODEL_PATH = "test.asdf"
     cached_path = "/tmp/modelforge-test-cache"
@@ -118,13 +153,14 @@ class ModelTests(unittest.TestCase):
     default_index = {
         "models": {
             "docfreq": {
-                "ddf87ec7-ead2-423c-b9b3-d08ce4bd2192": {
+                UUID: {
                     "url": "https://xxx",
                     "created_at": "13:00",
                     "code": "model_code %s",
                     "description": "model_description"},
                 "1e3da42a-28b6-4b33-94a2-a5671f4102f4": {
-                    "url": "https://xxx",
+                    "source": "https://xxx",
+                    "license": "Proprietary",
                     "created_at": "13:00",
                     "code": "%s",
                     "description": ""
@@ -133,7 +169,7 @@ class ModelTests(unittest.TestCase):
             "docfreq": {
                 "code": "readme_code %s",
                 "description": "readme_description",
-                "default": "ddf87ec7-ead2-423c-b9b3-d08ce4bd2192"}}}
+                "default": UUID}}}
 
     def setUp(self):
         ind.git = fake_git
@@ -166,7 +202,7 @@ class ModelTests(unittest.TestCase):
 
     def test_error(self):
         with self.assertRaises(ValueError):
-            GenericModel(source="ddf87ec7-ead2-423c-b9b3-d08ce4bd2192")
+            GenericModel(source=UUID)
 
     def test_id(self):
         def route(url):
@@ -175,9 +211,16 @@ class ModelTests(unittest.TestCase):
                 return fin.read()
 
         storage_backend.requests = FakeRequests(route)
-        model = GenericModel(
-            source="ddf87ec7-ead2-423c-b9b3-d08ce4bd2192", backend=self.backend)
+        cleaned = False
+
+        def fake_rmtree(path):
+            nonlocal cleaned
+            cleaned = True
+
+        with patch("shutil.rmtree", fake_rmtree):
+            model = GenericModel(source=UUID, backend=self.backend)
         self._validate_meta(model)
+        self.assertTrue(cleaned)
 
     def test_url(self):
         def route(url):
@@ -187,6 +230,7 @@ class ModelTests(unittest.TestCase):
 
         storage_backend.requests = FakeRequests(route)
         model = GenericModel(source="https://xxx", backend=self.backend)
+        self.assertEqual(model.source, "https://xxx")
         self._validate_meta(model)
 
     def test_auto(self):
@@ -200,6 +244,7 @@ class ModelTests(unittest.TestCase):
 
         storage_backend.requests = FakeRequests(route)
         model = FakeModel(backend=self.backend)
+        self.assertEqual(model.source, "https://xxx")
         self._validate_meta(model)
 
     def test_bad_code(self):
@@ -212,38 +257,40 @@ class ModelTests(unittest.TestCase):
             GenericModel(source="https://bad_code", backend=self.backend)
 
     def test_init_with_model(self):
-        model1 = Model1().load(source=get_path(self.MODEL_PATH))
+        model1 = FakeDocfreqModel().load(source=get_path(self.MODEL_PATH))
         # init with correct model
-        Model1(source=model1)
+        FakeDocfreqModel(source=model1)
         # init with wrong model
         with self.assertRaises(TypeError):
-            Model2().load(source=model1)
+            Model1().load(source=model1)
 
     def test_repr_str(self):
         self.maxDiff = None
         path = get_path(self.MODEL_PATH)
-        model = Model1().load(source=path)
+        model = FakeDocfreqModel().load(source=path)
         repr1 = repr(model)
         try:
-            self.assertIn("test_model.py].Model1().load(source=\"%s\")" % path, repr1)
+            self.assertIn("test_model.py].FakeDocfreqModel().load(source=\"%s\")" % path, repr1)
         except AssertionError:
-            self.assertEqual("modelforge.tests.test_model.Model1().load(source=\"%s\")"
+            self.assertEqual("modelforge.tests.test_model.FakeDocfreqModel().load(source=\"%s\")"
                              % path, repr1)
         str1 = str(model)
-        self.assertEqual(len(str1.split("\n")), 10)
-        self.assertIn("\nmodel1", str1)
-        self.assertIn("'uuid': 'ddf87ec7-ead2-423c-b9b3-d08ce4bd2192'", str1)
-        model = Model3().load(source=path)
-        str2 = str(model)
-        self.assertEqual(len(str2.split("\n")), 9)
+        self.assertEqual(len(str1.split("\n")), 13)
+        self.assertIn("'%s'" % FakeDocfreqModel.NAME, str1)
+        self.assertIn("'uuid': '%s'" % UUID, str1)
         model = FakeDocfreqModel().load(source=path)
+        str2 = str(model)
+        self.assertEqual(len(str2.split("\n")), 13)
+        model = FakeDocfreqModel().load(source=path)
+        self.assertEqual(model.description, "test description")
+        self.assertNotEqual(model.description, FakeDocfreqModel.DESCRIPTION)
         repr2 = repr(model)
         self.assertEqual("[%s].FakeDocfreqModel().load(source=\"%s\")"
                          % (os.path.realpath(__file__), path), repr2)
 
     def test_repr_main(self):
         path = get_path(self.MODEL_PATH)
-        model = Model1().load(source=path)
+        model = FakeDocfreqModel().load(source=path)
         module = inspect.getmodule(model)
         module.__name__ = "__main__"
         module.__spec__ = None
@@ -253,23 +300,25 @@ class ModelTests(unittest.TestCase):
             repr2 = repr(model)
         finally:
             module.__file__ = module_file
-        self.assertEqual("[unknown].Model1().load(source=\"%s\")" % path, repr2)
+        self.assertEqual("[unknown].FakeDocfreqModel().load(source=\"%s\")" % path, repr2)
 
     def test_get_dep(self):
-        model = Model1().load(source=get_path(self.MODEL_PATH))
+        model = FakeDocfreqModel().load(source=get_path(self.MODEL_PATH))
         model.meta["dependencies"] = [{"model": "xxx", "uuid": "yyy"},
                                       {"model": "zzz", "uuid": None}]
         self.assertEqual(model.get_dep("xxx")["uuid"], "yyy")
 
     def _validate_meta(self, model):
+        self.assertEqual(model.size, SIZE)
         meta = model.meta
         self.assertIsInstance(meta, dict)
         valid_meta = {
             "created_at": datetime.datetime(2017, 6, 19, 9, 59, 14, 766638),
             "dependencies": [],
             "model": "docfreq",
-            "parent": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
-            "uuid": "ddf87ec7-ead2-423c-b9b3-d08ce4bd2192",
+            "parent": PARENT_UUID,
+            "license": "MIT",
+            "uuid": UUID,
             "version": [1, 0, 1]
         }
         for key, val in valid_meta.items():
@@ -290,7 +339,7 @@ class ModelTests(unittest.TestCase):
 
     def test_derive(self):
         path = get_path(self.MODEL_PATH)
-        model = Model1().load(source=path)
+        model = FakeDocfreqModel().load(source=path)
         m2 = model.derive()
         self.assertEqual(m2.version, [1, 0, 2])
         model.derive((2, 0, 0))
@@ -312,8 +361,8 @@ class ModelTests(unittest.TestCase):
 
     def test_props(self):
         path = get_path(self.MODEL_PATH)
-        model = Model1().load(source=path)
-        for n in ("description", "references", "datasets", "license"):
+        model = FakeDocfreqModel().load(source=path)
+        for n in ("references", "datasets", "code"):
             with self.assertRaises(KeyError):
                 getattr(model, n)
         self.assertEqual(model.version, [1, 0, 1])
@@ -324,18 +373,24 @@ class ModelTests(unittest.TestCase):
 
     def test_save(self):
         with tempfile.NamedTemporaryFile(prefix="modelforge-test-") as f:
-            Model8().save(f.name)
-            self.assertEqual(Model8().load(f.name).tree["abc"], 777)
+            m = Model8().save(f.name)
+            self.assertEqual(m.source, f.name)
+            self.assertGreater(m.size, 1000)
+            self.assertLess(m.size, 2000)
+            m = Model8().load(f.name)
+            self.assertEqual(m.tree["abc"], 777)
+            self.assertEqual(m.source, f.name)
 
-    def test_save_no_name(self):
-        with self.assertRaises(AssertionError):
+    def test_save_no_impl(self):
+        with self.assertRaises(NotImplementedError):
             Model4().save("model.asdf")
 
     def test_save_create_missing_dirs(self):
         with tempfile.TemporaryDirectory(prefix="modelforge-test-") as savedir:
             savepath = os.path.join(savedir, "add/some/subdirs/", "model.asdf")
             with self.assertRaises(FileNotFoundError):
-                Model8().save(savepath, create_missing_dirs=False)
+                m = Model8().save(savepath, create_missing_dirs=False)
+                self.assertEqual(m.source, savepath)
             Model8().save(savepath)
             self.assertEqual(Model8().load(savepath).tree["abc"], 777)
 
@@ -455,7 +510,7 @@ class SerializationTests(unittest.TestCase):
                 self.assertEqual(getattr(docfreq, k), getattr(docfreq_rec, k), k)
 
     def test_write(self):
-        model = Model()
+        model = Model1()
         model._meta = generate_meta("test", (1, 0, 3))
         with tempfile.NamedTemporaryFile() as tmp:
             model._write_tree({"xxx": 100500}, tmp.name)
@@ -465,7 +520,7 @@ class SerializationTests(unittest.TestCase):
                 self.assertEqual(oct(os.stat(tmp.name).st_mode)[-3:], "666")
 
     def test_write_fileobj(self):
-        model = Model()
+        model = Model1()
         model._meta = generate_meta("test", (1, 0, 3))
         buffer = BytesIO()
         model._write_tree({"xxx": 100500}, buffer)
@@ -480,7 +535,9 @@ class SerializationTests(unittest.TestCase):
         with open(path, "rb") as fin:
             buffer.write(fin.read())
         buffer.seek(0)
-        model = Model1().load(source=buffer)
+        model = FakeDocfreqModel().load(source=buffer)
+        self.assertEqual(model.source, "<file object>")
+        self.assertEqual(model.size, SIZE)
         self.assertEqual(model.created_at, datetime.datetime(2017, 6, 19, 9, 59, 14, 766638))
 
 

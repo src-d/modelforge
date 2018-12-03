@@ -26,6 +26,9 @@ class GenericModel(Model):
     """
     Compatible with any model: loads it in :func:`__init__`.
     """
+    NAME = Model.GENERIC_NAME
+    VENDOR = "modelforge"
+    DESCRIPTION = "does not matter"
 
     def __init__(self, source: Union[str, "Model"]=None, dummy=False, cache_dir: str=None,
                  backend: StorageBackend=None, **kwargs):
