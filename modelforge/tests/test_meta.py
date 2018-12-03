@@ -19,6 +19,7 @@ class MetaTests(unittest.TestCase):
         self.assertEqual(meta["description"], "new description")
         self.assertIsInstance(meta["created_at"], datetime)
         self.assertIsNone(meta["parent"])
+        self.assertIsNone(meta["series"])
 
         with self.assertRaises(ValueError):
             met.generate_new_meta("first", "new description", "Madrid")
@@ -29,6 +30,7 @@ class MetaTests(unittest.TestCase):
         base_meta = {
             "created_at": dt,
             "model": "docfreq",
+            "series": "pga-2018",
             "uuid": "12345678-9abc-def0-1234-56789abcdef0",
             "version": [1, 0, 2],
             "parent": "f64bacd4-67fb-4c64-8382-399a8e7db52a",
@@ -64,6 +66,7 @@ class MetaTests(unittest.TestCase):
                           "datasets": [["any", "https://any"]],
                           "references": [["any", "ref"]],
                           "size": "7 Bytes",
+                          "series": "pga-2018",
                           "source": "https://xxx",
                           "version": [1, 0, 2], }})
 

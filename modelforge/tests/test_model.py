@@ -140,9 +140,9 @@ def generate_meta(name, version):
     return meta
 
 
-UUID = "dd6a841c-94e1-47f4-8029-b9aabb32505e"
-PARENT_UUID = "6ab2376a-68e4-4668-be85-1ae23beedd1a"
-SIZE = 110690  # do *not* use os.stat
+UUID = "625557b5-4f2e-4ebb-bd6d-0a7083b1cf06"
+PARENT_UUID = "bf0e7b04-a3ea-4b42-8274-a97f192fa15a"
+SIZE = 110712  # do *not* use os.stat
 
 
 class ModelTests(unittest.TestCase):
@@ -275,12 +275,12 @@ class ModelTests(unittest.TestCase):
             self.assertEqual("modelforge.tests.test_model.FakeDocfreqModel().load(source=\"%s\")"
                              % path, repr1)
         str1 = str(model)
-        self.assertEqual(len(str1.split("\n")), 13)
+        self.assertEqual(len(str1.split("\n")), 14)
         self.assertIn("'%s'" % FakeDocfreqModel.NAME, str1)
         self.assertIn("'uuid': '%s'" % UUID, str1)
         model = FakeDocfreqModel().load(source=path)
         str2 = str(model)
-        self.assertEqual(len(str2.split("\n")), 13)
+        self.assertEqual(len(str2.split("\n")), 14)
         model = FakeDocfreqModel().load(source=path)
         self.assertEqual(model.description, "test description")
         self.assertNotEqual(model.description, FakeDocfreqModel.DESCRIPTION)
@@ -340,18 +340,37 @@ class ModelTests(unittest.TestCase):
     def test_derive(self):
         path = get_path(self.MODEL_PATH)
         model = FakeDocfreqModel().load(source=path)
-        m2 = model.derive()
-        self.assertEqual(m2.version, [1, 0, 2])
+        self.assertEqual(model._initial_version, [1, 0, 1])
+        mid = model.uuid
+        model.derive()
+        self.assertEqual(model._initial_version, [1, 0, 1])
+        self.assertEqual(model.version, [1, 0, 2])
+        self.assertEqual(model.parent, mid)
         model.derive((2, 0, 0))
-        self.assertEqual(m2.version, [2, 0, 0])
+        self.assertEqual(model.version, [2, 0, 0])
+        self.assertEqual(model.parent, mid)
         with self.assertRaises(ValueError):
             model.derive("1.2.3")
 
     def test_derive_init(self):
-        model = Model1()
-        self.assertTrue(model.meta["__init__"])
-        model.derive()
+        model = Model8()
+        with BytesIO() as f:
+            model.save(f, "series")
         self.assertEqual(model.version, [1, 0, 0])
+
+    def test_derive_save(self):
+        model = FakeDocfreqModel().load(source=get_path(self.MODEL_PATH))
+        mid = model.uuid
+        model.derive()
+        self.assertEqual(model.version, [1, 0, 2])
+        with BytesIO() as f:
+            model.save(f)
+        self.assertEqual(model.version, [1, 0, 2])
+        self.assertEqual(model.parent, mid)
+        mid = model.uuid
+        model.derive()
+        self.assertEqual(model.version, [1, 0, 3])
+        self.assertEqual(model.parent, mid)
 
     def test_set_dep(self):
         model1 = Model1()
@@ -373,7 +392,9 @@ class ModelTests(unittest.TestCase):
 
     def test_save(self):
         with tempfile.NamedTemporaryFile(prefix="modelforge-test-") as f:
-            m = Model8().save(f.name)
+            m = Model8()
+            m.series = "series"
+            m.save(f.name)
             self.assertEqual(m.source, f.name)
             self.assertGreater(m.size, 1000)
             self.assertLess(m.size, 2000)
@@ -383,15 +404,18 @@ class ModelTests(unittest.TestCase):
 
     def test_save_no_impl(self):
         with self.assertRaises(NotImplementedError):
+            Model4().save("model.asdf", "series")
+
+        with self.assertRaises(ValueError):
             Model4().save("model.asdf")
 
     def test_save_create_missing_dirs(self):
         with tempfile.TemporaryDirectory(prefix="modelforge-test-") as savedir:
             savepath = os.path.join(savedir, "add/some/subdirs/", "model.asdf")
             with self.assertRaises(FileNotFoundError):
-                m = Model8().save(savepath, create_missing_dirs=False)
+                m = Model8().save(savepath, "series", create_missing_dirs=False)
                 self.assertEqual(m.source, savepath)
-            Model8().save(savepath)
+            Model8().save(savepath, "series")
             self.assertEqual(Model8().load(savepath).tree["abc"], 777)
 
 

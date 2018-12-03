@@ -6,7 +6,7 @@ from pprint import pformat
 import re
 import shutil
 import tempfile
-from typing import BinaryIO, Iterable, List, Tuple, Union
+from typing import BinaryIO, Iterable, List, Optional, Tuple, Union
 import uuid
 
 import asdf
@@ -57,9 +57,9 @@ class Model:
         self._log.setLevel(kwargs.get("log_level", logging.DEBUG))
         self._source = None
         self._meta = generate_new_meta(self.NAME, self.DESCRIPTION, self.LICENSE)
-        self._meta["__init__"] = True
         self._asdf = None
         self._size = 0
+        self._initial_version = None
         assert isinstance(self.NO_COMPRESSION, tuple), "NO_COMPRESSION must be a tuple"
         self._compression_prefixes = pygtrie.PrefixSet(self.NO_COMPRESSION)
 
@@ -141,6 +141,7 @@ class Model:
             try:
                 tree = model.tree
                 self._meta = tree["meta"]
+                self._initial_version = list(self.version)
                 if not generic:
                     meta_name = self._meta["model"]
                     matched = self.NAME == meta_name
@@ -213,6 +214,7 @@ class Model:
     name = metaprop("model", "type identifier of the model", readonly=True)
     parent = metaprop("parent", "UUID of the previous model", readonly=True)
     references = metaprop("references", "list of the related URLs")
+    series = metaprop("series", "subtype of the model")
     uuid = metaprop("uuid", "unique identifier of the model instance", readonly=True)
     version = metaprop("version", "version of the model: semver or single number", readonly=True)
 
@@ -237,19 +239,17 @@ class Model:
         :return: The derived model - self.
         """
         meta = self.meta
+        first_time = self._initial_version == self.version
         if new_version is None:
             new_version = meta["version"]
-            if not meta.get("__init__", False):
-                new_version[-1] += 1
+            new_version[-1] += 1
         if not isinstance(new_version, (tuple, list)):
             raise ValueError("new_version must be either a list or a tuple, got %s"
                              % type(new_version))
         meta["version"] = list(new_version)
-        if not meta.get("__init__", False):
+        if first_time:
             meta["parent"] = meta["uuid"]
-            meta["uuid"] = str(uuid.uuid4())
-        else:
-            del meta["__init__"]
+        meta["uuid"] = str(uuid.uuid4())
         return self
 
     def __str__(self):
@@ -295,9 +295,9 @@ class Model:
         state = {
             "_log": self._log.level,
             "_meta": self._meta,
-            "_compression_prefixes": self._compression_prefixes,
             "_source": self._source,
             "_size": self._size,
+            "_initial_version": self._initial_version,
             "tree": self._generate_tree()
         }
         # ensure that there are no ndarray proxies which cannot be pickled
@@ -321,11 +321,10 @@ class Model:
         log_level = state["_log"]
         self._log = logging.getLogger(self.NAME)
         self._log.setLevel(log_level)
-        self._meta = state["_meta"]
-        self._compression_prefixes = state["_compression_prefixes"]
         self._asdf = None
-        self._source = state["_source"]
-        self._size = state["_size"]
+        for key in ("_meta", "_source", "_size", "_initial_version"):
+            setattr(self, key, state[key])
+        self._compression_prefixes = pygtrie.PrefixSet(self.NO_COMPRESSION)
         self._load_tree(state["tree"])
 
     @staticmethod
@@ -368,25 +367,33 @@ class Model:
         """
         raise NotImplementedError()
 
-    def save(self, output: Union[str, BinaryIO], deps: Iterable=tuple(),
-             create_missing_dirs: bool=True) -> "Model":
+    def save(self, output: Union[str, BinaryIO], series: Optional[str] = None,
+             deps: Iterable=tuple(), create_missing_dirs: bool=True) -> "Model":
         """
         Serialize the model to a file.
 
-        :param output: path to the file or a file object.
-        :param deps: the list of the dependencies.
+        :param output: Path to the file or a file object.
+        :param series: Name of the model series. If it is None, it will be taken from \
+                       the current value; if the current value is empty, an error is raised.
+        :param deps: List of the dependencies.
         :param create_missing_dirs: create missing directories in output path if the output is a \
                                     path.
         :return: self
         """
         check_license(self.license)
+        if series is None:
+            if self.series is None:
+                raise ValueError("series must be specified")
+        else:
+            self.series = series
         if isinstance(output, str) and create_missing_dirs:
             dirs = os.path.split(output)[0]
             if dirs:
                 os.makedirs(dirs, exist_ok=True)
-        self.set_dep(*deps).derive()
+        self.set_dep(*deps)
         tree = self._generate_tree()
         self._write_tree(tree, output)
+        self._initial_version = self.version
         return self
 
     def _write_tree(self, tree: dict, output: Union[str, BinaryIO], file_mode: int=0o666) -> None:
@@ -399,7 +406,6 @@ class Model:
         :return: None
         """
         meta = self.meta.copy()
-        meta.pop("__init__", None)
         meta["environment"] = collect_env_info()
         final_tree = {}
         final_tree.update(tree)

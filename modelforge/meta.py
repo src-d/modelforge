@@ -31,6 +31,7 @@ def generate_new_meta(name: str, description: str, license: str) -> dict:
     check_license(license)
     return {
         "model": name,
+        "series": None,
         "uuid": str(uuid.uuid4()),
         "dependencies": [],
         "version": [1, 0, 0],
