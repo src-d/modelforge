@@ -210,11 +210,14 @@ class Model:
         "the version of the Python interpreter, the details about running OS and "
         "the list of packages used to create the model",
         readonly=True)
+    extra = metaprop("extra", "additional information which is not covered by other fields")
     license = metaprop("license", "license of the model (SPDX identifier or \"Proprietary\")")
+    metrics = metaprop("metrics", "achieved quality metric values")
     name = metaprop("model", "type identifier of the model", readonly=True)
     parent = metaprop("parent", "UUID of the previous model", readonly=True)
     references = metaprop("references", "list of the related URLs")
     series = metaprop("series", "subtype of the model")
+    tags = metaprop("tags", "categories for classification")
     uuid = metaprop("uuid", "unique identifier of the model instance", readonly=True)
     version = metaprop("version", "version of the model: semver or single number", readonly=True)
 

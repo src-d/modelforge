@@ -13,13 +13,14 @@ class MetaTests(unittest.TestCase):
         self.assertIsInstance(meta, dict)
         self.assertEqual(meta["model"], "first")
         uuid.UUID(meta["uuid"])
-        self.assertEqual(meta["dependencies"], [])
         self.assertEqual(meta["license"], "MIT")
         self.assertEqual(meta["version"], [1, 0, 0])
         self.assertEqual(meta["description"], "new description")
-        self.assertIsNone(meta["created_at"])
-        self.assertIsNone(meta["parent"])
-        self.assertIsNone(meta["series"])
+        for key in ("created_at", "parent", "series", "code", "environment", "extra"):
+            self.assertIsNone(meta[key], key)
+        for key in ("tags", "references", "datasets", "dependencies"):
+            self.assertEqual(meta[key], [], key)
+        self.assertEqual(meta["metrics"], {})
 
         with self.assertRaises(ValueError):
             met.generate_new_meta("first", "new description", "Madrid")
@@ -42,7 +43,8 @@ class MetaTests(unittest.TestCase):
             "code": "model_code %s",
             "datasets": [["any", "https://any"]],
             "description": "override",
-            "references": [["any", "ref"]]
+            "references": [["any", "ref"]],
+            "tags": ["one", "two"]
         }
 
         def route(url):
@@ -68,6 +70,7 @@ class MetaTests(unittest.TestCase):
                           "size": "7 Bytes",
                           "series": "pga-2018",
                           "source": "https://xxx",
+                          "tags": ["one", "two"],
                           "version": [1, 0, 2], }})
 
 

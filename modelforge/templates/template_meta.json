@@ -1,5 +1,8 @@
 {
+  "metrics": {"name": 1.0},
   "code": "str",
   "datasets": [["name", "URL"]],
-  "references": [["name", "URL"]]
+  "references": [["name", "URL"]],
+  "tags": ["name"],
+  "extra": {}
 }

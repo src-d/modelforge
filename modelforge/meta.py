@@ -30,15 +30,22 @@ def generate_new_meta(name: str, description: str, license: str) -> dict:
     """
     check_license(license)
     return {
-        "model": name,
-        "series": None,
-        "uuid": str(uuid.uuid4()),
-        "dependencies": [],
-        "version": [1, 0, 0],
+        "code": None,
         "created_at": None,
+        "datasets": [],
+        "dependencies": [],
         "description": description,
+        "environment": None,
+        "extra": None,
         "license": license,
+        "metrics": {},
+        "model": name,
         "parent": None,
+        "references": [],
+        "series": None,
+        "tags": [],
+        "uuid": str(uuid.uuid4()),
+        "version": [1, 0, 0],
     }
 
 
@@ -73,7 +80,7 @@ def extract_model_meta(base_meta: dict, extra_meta: dict, model_url: str) -> dic
     del base_meta["model"]
     del base_meta["uuid"]
     meta["model"] = base_meta
-    meta["model"].update({k: extra_meta[k] for k in ("code", "datasets", "references")})
+    meta["model"].update({k: extra_meta[k] for k in ("code", "datasets", "references", "tags")})
     response = requests.get(model_url, stream=True)
     meta["model"]["size"] = humanize.naturalsize(int(response.headers["content-length"]))
     meta["model"]["source"] = model_url
