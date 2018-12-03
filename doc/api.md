@@ -3,7 +3,7 @@
 Modelforge is meant to help developers and researchers share machine learning models 
 **of any kind**, that is to say it is agnostic of the framework used to obtain it. This sections 
 covers the abstraction's implemented here, and how you can extend them for you own usage. All the
-managing can be done through the command line and is documented [here](cmd.md).
+managing can be done through the command line and is documented [here](cmdline.md).
 
 
 ## Models
