@@ -6,17 +6,18 @@ from pprint import pformat
 import re
 import shutil
 import tempfile
-from typing import BinaryIO, Iterable, List, Tuple, Union
+from typing import BinaryIO, Iterable, List, Optional, Tuple, Union
 import uuid
 
 import asdf
+import humanize
 import numpy
 import pygtrie
 import scipy.sparse
 
 import modelforge.configuration as config
 from modelforge.environment import collect_env_info
-from modelforge.meta import generate_meta
+from modelforge.meta import check_license, format_datetime, generate_new_meta, get_datetime_now
 from modelforge.storage_backend import StorageBackend
 
 
@@ -26,14 +27,22 @@ class Model:
     base class should be able to load the file generated from an inheritor.
     """
 
+    # The following fields *must* be defined in inherited classes
     NAME = None  #: Name of the model. Used as the logging domain, too.
     VENDOR = None  #: The name of the issuing vendor, e.g. "source{d}"
-    DEFAULT_NAME = "default"  #: When no uuid is specified, this is used.
-    DEFAULT_FILE_EXT = ".asdf"  #: File extension of the model.
+    DESCRIPTION = None  #: Description of the model, Markdown-formatted
+
+    # The following fields *can* be defined in inherited classes
+    LICENSE = "Proprietary"  #: License identifier (according to SPDX)
     NO_COMPRESSION = tuple()  #: Tree path prefixes which should not be compressed.
     # Note: "/" is automatically appended to all the compared paths.
     # Paths always start with a "/".
-    ARRAY_COMPRESSION = "lz4"  #: ASDF default compression, options: zlib, bzp2, lz4
+
+    # The following fields *should not* be normally touched
+    DEFAULT_NAME = "default"  #: When no uuid is specified, this is used.
+    DEFAULT_FILE_EXT = ".asdf"  #: File extension of the model.
+    ARRAY_COMPRESSION = "lz4"  #: ASDF default compression, options: zlib, bzp2, lz4.
+    GENERIC_NAME = "generic"  #: Special name which allows to load any model.
 
     def __init__(self, **kwargs):
         """
@@ -41,12 +50,16 @@ class Model:
 
         :param kwargs: Everything is ignored except ``log_level``.
         """
+        assert self.NAME is not None
+        assert self.VENDOR is not None
+        assert self.DESCRIPTION is not None
         self._log = logging.getLogger(self.NAME)
         self._log.setLevel(kwargs.get("log_level", logging.DEBUG))
         self._source = None
-        self._meta = generate_meta(self.NAME, (1, 0, 0))
-        self._meta["__init__"] = True
+        self._meta = generate_new_meta(self.NAME, self.DESCRIPTION, self.LICENSE)
         self._asdf = None
+        self._size = 0
+        self._initial_version = None
         assert isinstance(self.NO_COMPRESSION, tuple), "NO_COMPRESSION must be a tuple"
         self._compression_prefixes = pygtrie.PrefixSet(self.NO_COMPRESSION)
 
@@ -72,10 +85,11 @@ class Model:
             raise TypeError("backend must be an instance of "
                             "modelforge.storage_backend.StorageBackend")
         self._source = str(source)
+        generic = self.NAME == self.GENERIC_NAME
         try:
             if source is None or (isinstance(source, str) and not os.path.isfile(source)):
                 if cache_dir is None:
-                    if self.NAME is not None:
+                    if not generic:
                         cache_dir = os.path.join(self.cache_dir(), self.NAME)
                     else:
                         cache_dir = tempfile.mkdtemp(prefix="modelforge-")
@@ -95,7 +109,7 @@ class Model:
                                          "model.")
                     index = backend.index.contents
                     config = index["models"]
-                    if self.NAME is not None:
+                    if not generic:
                         if not is_uuid:
                             model_id = index["meta"][self.NAME][model_id]
                         source = config[self.NAME][model_id]
@@ -113,13 +127,22 @@ class Model:
                     if backend is None:
                         raise ValueError("The backend must be set to load a URL.")
                     backend.fetch_model(source, file_name)
+                    self._source = source
                     source = file_name
-            self._log.info("Reading %s...", source)
+            if isinstance(source, str):
+                size = os.stat(source).st_size
+            else:
+                self._source = "<file object>"
+                pos = source.tell()
+                size = source.seek(0, os.SEEK_END) - pos
+                source.seek(pos, os.SEEK_SET)
+            self._log.info("Reading %s (%s)...", source, humanize.naturalsize(size))
             model = asdf.open(source, copy_arrays=not lazy, lazy_load=lazy)
             try:
                 tree = model.tree
                 self._meta = tree["meta"]
-                if self.NAME is not None:
+                self._initial_version = list(self.version)
+                if not generic:
                     meta_name = self._meta["model"]
                     matched = self.NAME == meta_name
                     if not matched:
@@ -138,8 +161,9 @@ class Model:
                 else:
                     self._asdf = model
         finally:
-            if self.NAME is None and cache_dir is not None:
+            if generic and cache_dir is not None:
                 shutil.rmtree(cache_dir)
+        self._size = size
         return self
 
     @property
@@ -149,27 +173,53 @@ class Model:
         """
         return self._meta
 
-    def metaprop(name: str, readonly=False):
+    @property
+    def source(self):
+        """
+        Return the source of the model (URL or file name).
+        """
+        return self._source
+
+    @property
+    def size(self):
+        """
+        Return the size of the serialized model.
+        """
+        return self._size
+
+    def metaprop(name: str, doc: str, readonly=False):
         """Temporary property builder."""
         def get(self):
             return self.meta[name]
+        get.__doc__ = "Get %s%s." % (doc, " (readonly)" if readonly else "")
 
         if not readonly:
             def set(self, value):
                 self.meta[name] = value
+            set.__doc__ = "Set %s." % doc
 
             return property(get, set)
         return property(get)
 
-    uuid = metaprop("uuid", readonly=True)
-    description = metaprop("description")
-    references = metaprop("references")
-    datasets = metaprop("datasets")
-    environment = metaprop("environment", readonly=True)
-    created_at = metaprop("created_at", readonly=True)
-    version = metaprop("version", readonly=True)
-    parent = metaprop("parent", readonly=True)
-    license = metaprop("license")
+    code = metaprop("code", "usage code example")
+    created_at = metaprop("created_at", "date and time when the model was created", readonly=True)
+    datasets = metaprop("datasets", "list of the datasets used to generate the model")
+    description = metaprop("description", "description of the model, Markdown format")
+    environment = metaprop(
+        "environment",
+        "the version of the Python interpreter, the details about running OS and "
+        "the list of packages used to create the model",
+        readonly=True)
+    extra = metaprop("extra", "additional information which is not covered by other fields")
+    license = metaprop("license", "license of the model (SPDX identifier or \"Proprietary\")")
+    metrics = metaprop("metrics", "achieved quality metric values")
+    name = metaprop("model", "type identifier of the model", readonly=True)
+    parent = metaprop("parent", "UUID of the previous model", readonly=True)
+    references = metaprop("references", "list of the related URLs")
+    series = metaprop("series", "subtype of the model")
+    tags = metaprop("tags", "categories for classification")
+    uuid = metaprop("uuid", "unique identifier of the model instance", readonly=True)
+    version = metaprop("version", "version of the model: semver or single number", readonly=True)
 
     del metaprop
 
@@ -192,19 +242,17 @@ class Model:
         :return: The derived model - self.
         """
         meta = self.meta
+        first_time = self._initial_version == self.version
         if new_version is None:
             new_version = meta["version"]
-            if not meta.get("__init__", False):
-                new_version[-1] += 1
+            new_version[-1] += 1
         if not isinstance(new_version, (tuple, list)):
             raise ValueError("new_version must be either a list or a tuple, got %s"
                              % type(new_version))
         meta["version"] = list(new_version)
-        if not meta.get("__init__", False):
+        if first_time:
             meta["parent"] = meta["uuid"]
-            meta["uuid"] = str(uuid.uuid4())
-        else:
-            del meta["__init__"]
+        meta["uuid"] = str(uuid.uuid4())
         return self
 
     def __str__(self):
@@ -218,6 +266,8 @@ class Model:
         if dump:
             dump = "\n" + dump
         meta = deepcopy(self.meta)
+        meta["created_at"] = format_datetime(meta["created_at"])
+        meta["size"] = humanize.naturalsize(self.size)
         try:
             meta["environment"]["packages"] = \
                 " ".join("%s==%s" % tuple(p) for p in self.environment["packages"])
@@ -248,8 +298,9 @@ class Model:
         state = {
             "_log": self._log.level,
             "_meta": self._meta,
-            "_compression_prefixes": self._compression_prefixes,
             "_source": self._source,
+            "_size": self._size,
+            "_initial_version": self._initial_version,
             "tree": self._generate_tree()
         }
         # ensure that there are no ndarray proxies which cannot be pickled
@@ -273,10 +324,10 @@ class Model:
         log_level = state["_log"]
         self._log = logging.getLogger(self.NAME)
         self._log.setLevel(log_level)
-        self._meta = state["_meta"]
-        self._compression_prefixes = state["_compression_prefixes"]
         self._asdf = None
-        self._source = state["_source"]
+        for key in ("_meta", "_source", "_size", "_initial_version"):
+            setattr(self, key, state[key])
+        self._compression_prefixes = pygtrie.PrefixSet(self.NO_COMPRESSION)
         self._load_tree(state["tree"])
 
     @staticmethod
@@ -319,25 +370,33 @@ class Model:
         """
         raise NotImplementedError()
 
-    def save(self, output: Union[str, BinaryIO], deps: Iterable=tuple(),
-             create_missing_dirs: bool=True) -> "Model":
+    def save(self, output: Union[str, BinaryIO], series: Optional[str] = None,
+             deps: Iterable=tuple(), create_missing_dirs: bool=True) -> "Model":
         """
         Serialize the model to a file.
 
-        :param output: path to the file or a file object.
-        :param deps: the list of the dependencies.
+        :param output: Path to the file or a file object.
+        :param series: Name of the model series. If it is None, it will be taken from \
+                       the current value; if the current value is empty, an error is raised.
+        :param deps: List of the dependencies.
         :param create_missing_dirs: create missing directories in output path if the output is a \
                                     path.
         :return: self
         """
-        assert self.NAME is not None
+        check_license(self.license)
+        if series is None:
+            if self.series is None:
+                raise ValueError("series must be specified")
+        else:
+            self.series = series
         if isinstance(output, str) and create_missing_dirs:
             dirs = os.path.split(output)[0]
             if dirs:
                 os.makedirs(dirs, exist_ok=True)
-        self.set_dep(*deps).derive()
+        self.set_dep(*deps)
         tree = self._generate_tree()
         self._write_tree(tree, output)
+        self._initial_version = self.version
         return self
 
     def _write_tree(self, tree: dict, output: Union[str, BinaryIO], file_mode: int=0o666) -> None:
@@ -349,32 +408,44 @@ class Model:
         :param file_mode: The output file's permissions.
         :return: None
         """
+        self.meta["created_at"] = get_datetime_now()
         meta = self.meta.copy()
-        meta.pop("__init__", None)
         meta["environment"] = collect_env_info()
         final_tree = {}
         final_tree.update(tree)
         final_tree["meta"] = meta
-        with asdf.AsdfFile(final_tree) as file:
-            queue = [("", tree)]
-            while queue:
-                path, element = queue.pop()
-                if isinstance(element, dict):
-                    for key, val in element.items():
-                        queue.append((path + "/" + key, val))
-                elif isinstance(element, (list, tuple)):
-                    for child in element:
-                        queue.append((path, child))
-                elif isinstance(element, numpy.ndarray):
-                    path += "/"
-                    if path not in self._compression_prefixes:
-                        self._log.debug("%s -> %s compression", path, self.ARRAY_COMPRESSION)
-                        file.set_array_compression(element, self.ARRAY_COMPRESSION)
-                    else:
-                        self._log.debug("%s -> compression disabled", path)
-            file.write_to(output)
-        if isinstance(output, str):
-            os.chmod(output, file_mode)
+        isfileobj = not isinstance(output, str)
+        if not isfileobj:
+            self._source = output
+            path = output
+            output = open(output, "wb")
+            os.chmod(path, file_mode)
+            pos = 0
+        else:
+            pos = output.tell()
+        try:
+            with asdf.AsdfFile(final_tree) as file:
+                queue = [("", tree)]
+                while queue:
+                    path, element = queue.pop()
+                    if isinstance(element, dict):
+                        for key, val in element.items():
+                            queue.append((path + "/" + key, val))
+                    elif isinstance(element, (list, tuple)):
+                        for child in element:
+                            queue.append((path, child))
+                    elif isinstance(element, numpy.ndarray):
+                        path += "/"
+                        if path not in self._compression_prefixes:
+                            self._log.debug("%s -> %s compression", path, self.ARRAY_COMPRESSION)
+                            file.set_array_compression(element, self.ARRAY_COMPRESSION)
+                        else:
+                            self._log.debug("%s -> compression disabled", path)
+                file.write_to(output)
+            self._size = output.seek(0, os.SEEK_END) - pos
+        finally:
+            if not isfileobj:
+                output.close()
 
     def _generate_tree(self) -> dict:
         """

@@ -38,7 +38,8 @@ setup(
                       "requests >=2.0,<3.0",
                       "typing;python_version<'3.5'",
                       "pygtrie>=1.0,<3.0",
-                      "xxhash>=1.0,<2.0"],
+                      "xxhash>=1.0,<2.0",
+                      "spdx>=2.0,<3.0"],
     entry_points={
         "console_scripts": ["modelforge=modelforge.__main__:main"],
     },

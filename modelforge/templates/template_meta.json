@@ -1,13 +1,8 @@
 {
-  "code": "%s",
-  "description": "",
-  "model": {
-    "dependencies": [],
-    "code": "%s",
-    "description": "",
-    "extra": {},
-    "license": ["", "undecided"],
-    "parent": "",
-    "references": [["", ""]]
-  }
+  "metrics": {"name": 1.0},
+  "code": "str",
+  "datasets": [["name", "URL"]],
+  "references": [["name", "URL"]],
+  "tags": ["name"],
+  "extra": {}
 }
