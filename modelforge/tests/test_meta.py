@@ -17,7 +17,7 @@ class MetaTests(unittest.TestCase):
         self.assertEqual(meta["license"], "MIT")
         self.assertEqual(meta["version"], [1, 0, 0])
         self.assertEqual(meta["description"], "new description")
-        self.assertIsInstance(meta["created_at"], datetime)
+        self.assertIsNone(meta["created_at"])
         self.assertIsNone(meta["parent"])
         self.assertIsNone(meta["series"])
 

@@ -26,6 +26,7 @@ class GenericModel(Model):
     """
     Compatible with any model: loads it in :func:`__init__`.
     """
+
     NAME = Model.GENERIC_NAME
     VENDOR = "modelforge"
     DESCRIPTION = "does not matter"

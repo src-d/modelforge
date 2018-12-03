@@ -17,7 +17,7 @@ import scipy.sparse
 
 import modelforge.configuration as config
 from modelforge.environment import collect_env_info
-from modelforge.meta import check_license, format_datetime, generate_new_meta
+from modelforge.meta import check_license, format_datetime, generate_new_meta, get_datetime_now
 from modelforge.storage_backend import StorageBackend
 
 
@@ -405,6 +405,7 @@ class Model:
         :param file_mode: The output file's permissions.
         :return: None
         """
+        self.meta["created_at"] = get_datetime_now()
         meta = self.meta.copy()
         meta["environment"] = collect_env_info()
         final_tree = {}

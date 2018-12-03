@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 import humanize
@@ -35,11 +35,18 @@ def generate_new_meta(name: str, description: str, license: str) -> dict:
         "uuid": str(uuid.uuid4()),
         "dependencies": [],
         "version": [1, 0, 0],
-        "created_at": datetime.now(),
+        "created_at": None,
         "description": description,
         "license": license,
         "parent": None,
     }
+
+
+def get_datetime_now() -> datetime:
+    """
+    Return the current UTC date and time.
+    """
+    return datetime.now(timezone.utc)
 
 
 def format_datetime(dt: datetime) -> str:

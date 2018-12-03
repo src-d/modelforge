@@ -395,6 +395,7 @@ class ModelTests(unittest.TestCase):
             m = Model8()
             m.series = "series"
             m.save(f.name)
+            self.assertIsInstance(m.created_at, datetime.datetime)
             self.assertEqual(m.source, f.name)
             self.assertGreater(m.size, 1000)
             self.assertLess(m.size, 2000)
