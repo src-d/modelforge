@@ -9,12 +9,12 @@
 |             [series](#series) | Subtype identifier                          | string | yes |
 |           [version](#version) | Version                                     | [semver](https://semver.org)-like list of 3 numbers or single number | yes |
 |     [created_at](#created_at) | Date and time when model was generated      | datetime string | yes |
-|             [parent](#parent) | Unique identifier of the previous version   | https://en.wikipedia.org/wiki/Universally_unique_identifier) string | yes |
+|             [parent](#parent) | Unique identifier of the previous version   | [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier) string | yes |
 |   [description](#description) | Information about the model                 | string | yes |
 |             [source](#source) | Download link or file path                  | string | yes |
 |                 [size](#size) | Size of the file                            | int    | yes |
 |           [license](#license) | License of the model                        | [SPDX](https://spdx.org/licenses/) identifier or "Proprietary" string | yes |
-|   [environment](#environment) | Description of the computing environment used to create the model | \<see the details below\> | yes |
+|   [environment](#environment) | Description of the computing environment used to create the model | <see the details below> | yes |
 | [dependencies](#dependencies) | Other models on which our model depend      | UUID strings mapped to Model-s | no |
 |                 [code](#code) | Example of model usage in Python            | string | no |
 |         [datasets](#datasets) | List of datasets used to generate the model | list of pairs \[name, URL\] | no |
