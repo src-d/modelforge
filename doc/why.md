@@ -2,8 +2,9 @@
 
 There is a need for solution to manage trained machine learning models. It is not critical if the number
 of models is low, of course, but problems are going to arise if it grows. Model version management
-is required to track the development progress. Files must be synchronized. If you want to share
-your trained models to the public, you require a presentation - a catalogue for discovery.
+is required to track the development progress. Files must be synchronized. There can be
+data dependencies: some models cannot be used without loading others.
+If you want to share your trained models to the public, you require a presentation - a catalogue for discovery.
 Finally, there is always the problem with reproducibility: a model should ideally define
 the environment and the instructions to be re-generated.
 

@@ -5,8 +5,8 @@ tools and a Python library. Modelforge maintains model files in a third-party re
 ("cloud") using the backend mechanism. Model metadata (download links, names, descriptions, versions,
 etc.) resides in a Git repository called the "Index", and documentation is automatically generated
 there. Modelforge does no assumptions about the models: they can be of any origin, such as TensorFlow,
-scikit-learn, or your custom. The underlying model storage format
-- [Advanced Scientific Data Format](https://github.com/spacetelescope/asdf) - can wrap any data
+scikit-learn, or your custom. The underlying model storage format -
+[Advanced Scientific Data Format](https://github.com/spacetelescope/asdf) - can wrap any data
 easily and efficiently, but it's the developer's responsibility to convert.
 
 Learn more about:
