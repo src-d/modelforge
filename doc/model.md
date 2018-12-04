@@ -23,8 +23,8 @@
 |           [metrics](#metrics) | Achieved quality metrics                    | mapping from names to numbers | no |
 |               [extra](#extra) | Additional information which is not covered by any other fields | custom | no |
 
-"Required" flag means whether the field is always included into a model or not.
-The fields from above are named "metadata" in Modelforge.
+"Required" flag means whether the field always has a non-empty value.
+The table from above defines "metadata" in Modelforge.
 The data scheme of the actual payload of the model is referred to as the "internal format", and it is opaque.
 It can be any tree-like data structure with string, numbers, lists, subtrees and tensors inside.
 

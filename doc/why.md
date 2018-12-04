@@ -22,5 +22,5 @@ Reproducibility is often out of scope.
 
 Modelforge tries to be a universal platform which provides scalability, versioning, reproducibility
 and ease of distribution. Yet it stays away from ML internals. From Modelforge's perspective, each
-model is a black box which can be serialized and deserialized, nothing more. Read [Modelforge Model](model.md)
-for details.
+model is a black box which can be serialized and deserialized, nothing more. Read
+[Modelforge Model](model.md) for details.
