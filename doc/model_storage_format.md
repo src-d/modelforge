@@ -48,7 +48,7 @@ docfreq = {k: v for v, k in sorted([(v, k) for k, v in docfreq.items()],
 
 Let's compare the sizes of pickle-s and asdf-s with various preprocessing.
 
-```
+```python
 import pickle
 
 with open("/tmp/docfreq.pickle", "wb") as fout:
