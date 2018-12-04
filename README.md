@@ -41,6 +41,7 @@ pip3 install modelforge
 The project exposes two interfaces: [command line](doc/cmdline.md) and [API](doc/api.md).
 
 ## Contributions
+
 Contributions are pretty much welcome! Please follow the [contributions guide](doc/contributing.md)
 and the [code of conduct](doc/code_of_conduct.md).
 
