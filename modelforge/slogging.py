@@ -26,6 +26,14 @@ def get_timezone() -> Tuple[datetime.tzinfo, str]:
 
 
 timezone, tzstr = get_timezone()
+_now = datetime.datetime.now()
+if _now.month == 12:
+    _fest = "🎅"
+elif _now.month == 10 and _now.day > (31 - 7):
+    _fest = "🎃"
+else:
+    _fest = ""
+del _now
 
 
 def format_datetime(dt: datetime.datetime):
@@ -106,6 +114,7 @@ class AwesomeFormatter(logging.Formatter):
             fmt = "\033[" + level_color + \
                   "m%(levelname)s\033[0m:%(rthread)s:%(name)s:\033[" + text_color + \
                   "m%(message)s\033[0m"
+        fmt = _fest + fmt
         record.rthread = reduce_thread_id(record.thread)
         return fmt % record.__dict__
 
