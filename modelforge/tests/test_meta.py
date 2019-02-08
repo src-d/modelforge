@@ -9,13 +9,14 @@ from modelforge.tests.fake_requests import FakeRequests
 
 class MetaTests(unittest.TestCase):
     def test_generate_meta(self):
-        meta = met.generate_new_meta("first", "new description", "MIT")
+        meta = met.generate_new_meta("first", "new description", "vendor", "MIT")
         self.assertIsInstance(meta, dict)
         self.assertEqual(meta["model"], "first")
         uuid.UUID(meta["uuid"])
         self.assertEqual(meta["license"], "MIT")
         self.assertEqual(meta["version"], [1, 0, 0])
         self.assertEqual(meta["description"], "new description")
+        self.assertEqual(meta["vendor"], "vendor")
         for key in ("created_at", "parent", "series", "code", "environment", "extra"):
             self.assertIsNone(meta[key], key)
         for key in ("tags", "references", "datasets", "dependencies"):
@@ -23,7 +24,7 @@ class MetaTests(unittest.TestCase):
         self.assertEqual(meta["metrics"], {})
 
         with self.assertRaises(ValueError):
-            met.generate_new_meta("first", "new description", "Madrid")
+            met.generate_new_meta("first", "new description", "vendor", "Madrid")
 
     def test_extract_index_meta(self):
         self.maxDiff = None

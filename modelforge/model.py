@@ -56,7 +56,7 @@ class Model:
         self._log = logging.getLogger(self.NAME)
         self._log.setLevel(kwargs.get("log_level", logging.DEBUG))
         self._source = None
-        self._meta = generate_new_meta(self.NAME, self.DESCRIPTION, self.LICENSE)
+        self._meta = generate_new_meta(self.NAME, self.DESCRIPTION, self.VENDOR, self.LICENSE)
         self._asdf = None
         self._size = 0
         self._initial_version = None
@@ -205,6 +205,7 @@ class Model:
     created_at = metaprop("created_at", "date and time when the model was created", readonly=True)
     datasets = metaprop("datasets", "list of the datasets used to generate the model")
     description = metaprop("description", "description of the model, Markdown format")
+    vendor = metaprop("vendor", "name of the party responsible for support")
     environment = metaprop(
         "environment",
         "the version of the Python interpreter, the details about running OS and "

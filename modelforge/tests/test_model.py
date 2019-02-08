@@ -151,7 +151,7 @@ def get_path(name):
 
 
 def generate_meta(name, version):
-    meta = generate_new_meta(name, "test", "Proprietary")
+    meta = generate_new_meta(name, "test", "source{d}", "Proprietary")
     meta["version"] = version
     return meta
 
