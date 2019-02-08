@@ -19,12 +19,13 @@ def check_license(license: str):
         raise ValueError("license must be an SPDX-compliant identifier or \"Proprietary\"")
 
 
-def generate_new_meta(name: str, description: str, license: str) -> dict:
+def generate_new_meta(name: str, description: str, vendor: str, license: str) -> dict:
     """
     Create the metadata tree for the given model name and the list of dependencies.
 
     :param name: Name of the model.
     :param description: Description of the model.
+    :param vendor: Name of the party which is responsible for support of the model.
     :param license: License identifier.
     :return: dict with the metadata.
     """
@@ -35,6 +36,7 @@ def generate_new_meta(name: str, description: str, license: str) -> dict:
         "datasets": [],
         "dependencies": [],
         "description": description,
+        "vendor": vendor,
         "environment": None,
         "extra": None,
         "license": license,
