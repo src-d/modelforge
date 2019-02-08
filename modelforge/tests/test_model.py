@@ -125,6 +125,22 @@ class Model8(Model):
         return "model8"
 
 
+class NumpyArray(Model):
+    NAME = "numpy_array"
+    VENDOR = "source{d}"
+    DESCRIPTION = "test numpy array pickling"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.array = numpy.random.normal(16)
+
+    def _generate_tree(self):
+        return {"array": self.array}
+
+    def _load_tree(self, tree):
+        self.array = tree["array"]
+
+
 class FakeIndex:
     def __init__(self, index):
         self.index = index
@@ -533,6 +549,18 @@ class SerializationTests(unittest.TestCase):
         for k in docfreq.__dict__:
             if k != "tree":
                 self.assertEqual(getattr(docfreq, k), getattr(docfreq_rec, k), k)
+
+    def test_pickle_numpy(self):
+        arr = NumpyArray()
+        fobj = BytesIO()
+        arr.save(fobj, series="test")
+        fobj.seek(0)
+        arr = NumpyArray().load(fobj)
+        pickle.dumps(arr)
+        with tempfile.NamedTemporaryFile(prefix="modelforge-test-") as f:
+            arr.save(f.name)
+            arr = NumpyArray().load(f.name)
+            pickle.dumps(arr)
 
     def test_write(self):
         model = Model1()
