@@ -1,3 +1,4 @@
+import argparse
 import codecs
 import datetime
 import io
@@ -214,3 +215,30 @@ def set_context(context):
         handler.local.context = context
     finally:
         handler.release()
+
+
+def add_logging_args(parser: argparse.ArgumentParser, patch: bool = True) -> None:
+    """
+    Add command line flags specific to logging.
+
+    :param parser: `argparse` parser where to add new flags.
+    :param patch: Patch parse_args() to automatically setup logging.
+    """
+    parser.add_argument("--log-level", default="INFO", choices=logging._nameToLevel,
+                        help="Logging verbosity.")
+    parser.add_argument("--log-structured", action="store_true",
+                        help="Enable structured logging (JSON record per line).")
+    parser.add_argument("--log-config",
+                        help="Path to the file which sets individual log levels of domains.")
+    # monkey-patch parse_args()
+    # custom actions do not work, unfortunately, because they are not invoked if
+    # the corresponding --flags are not specified
+
+    def _patched_parse_args(args=None, namespace=None) -> argparse.Namespace:
+        args = parser._original_parse_args(args, namespace)
+        setup(args.log_level, args.log_structured, args.log_config)
+        return args
+
+    if patch and not hasattr(parser, "_original_parse_args"):
+        parser._original_parse_args = parser.parse_args
+        parser.parse_args = _patched_parse_args

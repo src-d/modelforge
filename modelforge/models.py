@@ -42,7 +42,7 @@ class GenericModel(Model):
         :param backend: Remote storage backend to use if ``source`` is a UUID or a URL.
         :param kwargs: Everything is passed directly to `Model.__init__`.
         """
-        super(GenericModel, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._models = {m.NAME: m for m in __models__} if not dummy else {}
         self.load(source=source, cache_dir=cache_dir, backend=backend)
 
