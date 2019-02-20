@@ -280,6 +280,11 @@ class ModelTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             Model1().load(source=model1)
 
+    def test_repr_str_empty(self):
+        model = FakeDocfreqModel()
+        self.assertIsInstance(str(model), str)
+        self.assertIsInstance(repr(model), str)
+
     def test_repr_str(self):
         self.maxDiff = None
         path = get_path(self.MODEL_PATH)

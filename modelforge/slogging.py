@@ -15,19 +15,21 @@ import numpy
 import xxhash
 import yaml
 
+from modelforge.meta import get_datetime_now
+
 logs_are_structured = False
 
 
 def get_timezone() -> Tuple[datetime.tzinfo, str]:
     """Discover the current time zone and it's standard string representation (for source{d})."""
-    dt = datetime.datetime.now(datetime.timezone.utc).astimezone()
+    dt = get_datetime_now().astimezone()
     tzstr = dt.strftime("%z")
     tzstr = tzstr[:-2] + ":" + tzstr[-2:]
     return dt.tzinfo, tzstr
 
 
 timezone, tzstr = get_timezone()
-_now = datetime.datetime.now()
+_now = get_datetime_now()
 if _now.month == 12:
     _fest = "🎅"
 elif _now.month == 10 and _now.day > (31 - 7):
