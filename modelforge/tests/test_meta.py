@@ -17,7 +17,12 @@ class MetaTests(unittest.TestCase):
         self.assertEqual(meta["version"], [1, 0, 0])
         self.assertEqual(meta["description"], "new description")
         self.assertEqual(meta["vendor"], "vendor")
-        for key in ("created_at", "parent", "series", "code", "environment", "extra"):
+        self.assertIsInstance(meta["environment"], dict)
+        self.assertEqual(meta["environment"]["packages"], [])
+        self.assertIsInstance(meta["environment"]["python"], str)
+        self.assertIsInstance(meta["environment"]["platform"], str)
+        self.assertIsInstance(meta["created_at"], datetime)
+        for key in ("parent", "series", "code", "extra"):
             self.assertIsNone(meta[key], key)
         for key in ("tags", "references", "datasets", "dependencies"):
             self.assertEqual(meta[key], [], key)
@@ -28,7 +33,7 @@ class MetaTests(unittest.TestCase):
 
     def test_extract_index_meta(self):
         self.maxDiff = None
-        dt = datetime.now()
+        dt = met.get_datetime_now()
         base_meta = {
             "created_at": dt,
             "model": "docfreq",

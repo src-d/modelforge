@@ -14,18 +14,28 @@ except ImportError:
 _env = None
 
 
-def collect_env_info() -> dict:
+def collect_environment_without_packages() -> dict:
     """
-    Return the version of Python executable, the versions of currently loaded packages and \
-    the running platform.
+    Return the version of the Python executable and the running platform.
+    """
+    return {
+        "python": sys.version.replace("\n", ""),
+        "packages": [],
+        "platform": platform.platform(),
+    }
+
+
+def collect_environment(no_cache: bool = False) -> dict:
+    """
+    Return the version of the Python executable, the versions of the currently loaded packages \
+    and the running platform.
+
+    The result is cached unless `no_cache` is True.
     """
     global _env
-    if _env is None:
-        _env = {
-            "python": sys.version.replace("\n", ""),
-            "packages": collect_loaded_packages(),
-            "platform": platform.platform(),
-        }
+    if _env is None or no_cache:
+        _env = collect_environment_without_packages()
+        _env["packages"] = collect_loaded_packages()
     return _env
 
 

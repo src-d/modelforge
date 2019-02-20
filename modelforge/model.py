@@ -16,7 +16,7 @@ import pygtrie
 import scipy.sparse
 
 import modelforge.configuration as config
-from modelforge.environment import collect_env_info
+from modelforge.environment import collect_environment
 from modelforge.meta import check_license, format_datetime, generate_new_meta, get_datetime_now
 from modelforge.storage_backend import StorageBackend
 
@@ -411,7 +411,7 @@ class Model:
         """
         self.meta["created_at"] = get_datetime_now()
         meta = self.meta.copy()
-        meta["environment"] = collect_env_info()
+        meta["environment"] = collect_environment()
         final_tree = {}
         final_tree.update(tree)
         final_tree["meta"] = meta

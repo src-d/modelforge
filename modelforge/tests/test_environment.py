@@ -4,13 +4,13 @@ import sys
 import unittest
 from unittest.mock import patch
 
-from modelforge.environment import collect_env_info
+from modelforge.environment import collect_environment
 from modelforge.tools import install_environment
 
 
 class EnvironmentTests(unittest.TestCase):
     def test_collect_env_info(self):
-        info = collect_env_info()
+        info = collect_environment()
         self.assertTrue(info["python"])
         self.assertTrue(info["platform"])
         self.assertGreater(len(info["packages"]), 0)
