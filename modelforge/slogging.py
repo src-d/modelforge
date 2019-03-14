@@ -225,7 +225,7 @@ def add_logging_args(parser: argparse.ArgumentParser, patch: bool = True,
     Add command line flags specific to logging.
 
     :param parser: `argparse` parser where to add new flags.
-    :param erase_args: Automatically erase logging arguments after setup.
+    :param erase_args: Automatically remove logging-related flags from parsed args.
     :param patch: Patch parse_args() to automatically setup logging.
     """
     parser.add_argument("--log-level", default="INFO", choices=logging._nameToLevel,
