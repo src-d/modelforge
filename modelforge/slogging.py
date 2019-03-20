@@ -219,11 +219,13 @@ def set_context(context):
         handler.release()
 
 
-def add_logging_args(parser: argparse.ArgumentParser, patch: bool = True) -> None:
+def add_logging_args(parser: argparse.ArgumentParser, patch: bool = True,
+                     erase_args: bool = True) -> None:
     """
     Add command line flags specific to logging.
 
     :param parser: `argparse` parser where to add new flags.
+    :param erase_args: Automatically remove logging-related flags from parsed args.
     :param patch: Patch parse_args() to automatically setup logging.
     """
     parser.add_argument("--log-level", default="INFO", choices=logging._nameToLevel,
@@ -239,6 +241,9 @@ def add_logging_args(parser: argparse.ArgumentParser, patch: bool = True) -> Non
     def _patched_parse_args(args=None, namespace=None) -> argparse.Namespace:
         args = parser._original_parse_args(args, namespace)
         setup(args.log_level, args.log_structured, args.log_config)
+        if erase_args:
+            for log_arg in ("log_level", "log_structured", "log_config"):
+                delattr(args, log_arg)
         return args
 
     if patch and not hasattr(parser, "_original_parse_args"):

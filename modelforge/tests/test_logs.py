@@ -6,6 +6,7 @@ import subprocess
 import sys
 from typing import Tuple, Union
 import unittest
+from unittest.mock import patch
 
 from modelforge import slogging
 from modelforge.tests.capture import captured_output
@@ -47,6 +48,18 @@ class LogTests(unittest.TestCase):
         method = parser.parse_args
         slogging.add_logging_args(parser)
         self.assertNotEqual(method, parser.parse_args)
+
+    def test_argparse_erase_args(self):
+        log_args = {"log_level", "log_structured", "log_config"}
+        parser = argparse.ArgumentParser()
+        slogging.add_logging_args(parser, erase_args=True)
+        with patch.object(sys, "argv"):
+            with patch("modelforge.slogging.setup"):
+                def my_setup(*args):
+                    pass
+                slogging.setup = my_setup
+                args = parser.parse_args()
+                self.assertEqual(len(log_args.intersection(vars(args))), 0)
 
     def launch_test_slogging_main(self, level: str, structured: bool, config_path: str
                                   ) -> Tuple[str, bool, str]:
