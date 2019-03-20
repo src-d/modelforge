@@ -30,7 +30,7 @@ setup(
                       "numpy>=1.12,<2.0",
                       "scipy>=1.0,<2.0",
                       "clint>=0.5.0,<0.6",
-                      "google-cloud-storage>=1.2,<2.0",
+                      "google-cloud-storage>=1.2,<=1.2.0",
                       "dulwich>=0.19,<1.0",
                       "jinja2 >=2.0,<3.0",
                       "humanize>=0.5.0,<0.6",
