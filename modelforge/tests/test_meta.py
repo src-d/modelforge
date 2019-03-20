@@ -65,7 +65,8 @@ class MetaTests(unittest.TestCase):
         self.assertDictEqual(
             model_meta, {
                 "default": {"default": "12345678-9abc-def0-1234-56789abcdef0",
-                            "description": "model_description"},
+                            "description": "model_description",
+                            "code": "model_code %s"},
                 "model": {"created_at": met.format_datetime(dt),
                           "code": "model_code %s",
                           "description": "model_description",

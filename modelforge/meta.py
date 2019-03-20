@@ -80,7 +80,9 @@ def extract_model_meta(base_meta: dict, extra_meta: dict, model_url: str) -> dic
     :param model_url: public URL of the model.
     :return: converted dict.
     """
-    meta = {"default": {"default": base_meta["uuid"], "description": base_meta["description"]}}
+    meta = {"default": {"default": base_meta["uuid"],
+                        "description": base_meta["description"],
+                        "code": extra_meta["code"]}}
     del base_meta["model"]
     del base_meta["uuid"]
     meta["model"] = base_meta
