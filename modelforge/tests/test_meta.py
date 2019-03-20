@@ -50,7 +50,8 @@ class MetaTests(unittest.TestCase):
             "datasets": [["any", "https://any"]],
             "description": "override",
             "references": [["any", "ref"]],
-            "tags": ["one", "two"]
+            "tags": ["one", "two"],
+            "extra": {"feature": "value"},
         }
 
         def route(url):
@@ -77,7 +78,8 @@ class MetaTests(unittest.TestCase):
                           "series": "pga-2018",
                           "source": "https://xxx",
                           "tags": ["one", "two"],
-                          "version": [1, 0, 2], }})
+                          "version": [1, 0, 2],
+                          "extra": {"feature": "value"}}})
 
 
 def get_path(name):
