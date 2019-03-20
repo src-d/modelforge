@@ -16,7 +16,7 @@ setup(
                 "models, list them. There is a built-in cache. Storage has backends.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version=".".join(str(x) for x in modelforge.__version__),
+    version=modelforge.__version__,
     license="Apache 2.0",
     author="source{d}",
     author_email="machine-learning@sourced.tech",
