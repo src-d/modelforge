@@ -77,7 +77,7 @@ class MetaTests(unittest.TestCase):
                           "references": [["any", "ref"]],
                           "size": "7 Bytes",
                           "series": "pga-2018",
-                          "source": "https://xxx",
+                          "url": "https://xxx",
                           "tags": ["one", "two"],
                           "version": [1, 0, 2],
                           "extra": {"feature": "value"}}})
