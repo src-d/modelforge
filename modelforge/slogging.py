@@ -49,6 +49,12 @@ def reduce_thread_id(thread_id: int) -> str:
     return xxhash.xxh32(thread_id.to_bytes(8, "little")).hexdigest()[:4]
 
 
+def with_logger(cls):
+    """Add a logger as static attribute to a class."""
+    cls._log = logging.getLogger(cls.__name__)
+    return cls
+
+
 class NumpyLogRecord(logging.LogRecord):
     """
     LogRecord with the special handling of numpy arrays which shortens the long ones.
