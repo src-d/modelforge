@@ -84,7 +84,8 @@ def extract_model_meta(base_meta: dict, extra_meta: dict, model_url: str) -> dic
     del base_meta["model"]
     del base_meta["uuid"]
     meta["model"] = base_meta
-    meta["model"].update({k: extra_meta[k] for k in ("code", "datasets", "references", "tags")})
+    meta["model"].update({k: extra_meta[k] for k in ("code", "datasets", "references", "tags",
+                                                     "extra")})
     response = requests.get(model_url, stream=True)
     meta["model"]["size"] = humanize.naturalsize(int(response.headers["content-length"]))
     meta["model"]["source"] = model_url
