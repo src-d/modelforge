@@ -76,6 +76,14 @@ class LogTests(unittest.TestCase):
         result[1] = strtobool(result[1])
         return tuple(result)
 
+    def test_with_logger_decorator(self):
+        @slogging.with_logger
+        class A:
+            pass
+
+        self.assertTrue(hasattr(A, "_log"))
+        self.assertEqual(A._log.name, "A")
+
 
 def run_slogging_main():
     parser = argparse.ArgumentParser()
