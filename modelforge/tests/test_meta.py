@@ -50,7 +50,8 @@ class MetaTests(unittest.TestCase):
             "datasets": [["any", "https://any"]],
             "description": "override",
             "references": [["any", "ref"]],
-            "tags": ["one", "two"]
+            "tags": ["one", "two"],
+            "extra": {"feature": "value"},
         }
 
         def route(url):
@@ -64,7 +65,8 @@ class MetaTests(unittest.TestCase):
         self.assertDictEqual(
             model_meta, {
                 "default": {"default": "12345678-9abc-def0-1234-56789abcdef0",
-                            "description": "model_description"},
+                            "description": "model_description",
+                            "code": "model_code %s"},
                 "model": {"created_at": met.format_datetime(dt),
                           "code": "model_code %s",
                           "description": "model_description",
@@ -75,9 +77,10 @@ class MetaTests(unittest.TestCase):
                           "references": [["any", "ref"]],
                           "size": "7 Bytes",
                           "series": "pga-2018",
-                          "source": "https://xxx",
+                          "url": "https://xxx",
                           "tags": ["one", "two"],
-                          "version": [1, 0, 2], }})
+                          "version": [1, 0, 2],
+                          "extra": {"feature": "value"}}})
 
 
 def get_path(name):
