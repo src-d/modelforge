@@ -84,6 +84,12 @@ class LogTests(unittest.TestCase):
         self.assertTrue(hasattr(A, "_log"))
         self.assertEqual(A._log.name, "A")
 
+    def test_trailing_dot_check(self):
+        slogging.setup("INFO", False)
+        logger = logging.getLogger("test")
+        with self.assertRaises(AssertionError):
+            logger.info("success.")
+
 
 def run_slogging_main():
     parser = argparse.ArgumentParser()
