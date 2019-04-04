@@ -445,13 +445,18 @@ class ModelTests(unittest.TestCase):
 class SerializationTests(unittest.TestCase):
     DOCFREQ_PATH = "test.asdf"
 
-    def test_empty_split_and_merge(self):
+    def test_empty_split_save_load_merge(self):
         strings = []
         merged = merge_strings(strings)
         assert_array_equal(merged["strings"], numpy.array([], dtype="S1"))
         assert_array_equal(merged["lengths"], numpy.array([], dtype=int))
         self.assertIsNone(merged["str"])
-        strings_restored = split_strings(merged)
+        af = asdf.AsdfFile(merged)
+        buffer = BytesIO()
+        af.write_to(buffer)
+        buffer.seek(0)
+        af_loaded = asdf.open(buffer)
+        strings_restored = split_strings(af_loaded.tree)
         self.assertEqual(strings, strings_restored)
 
     def test_merge_strings(self):
