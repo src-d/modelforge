@@ -511,7 +511,7 @@ def split_strings(subtree: dict) -> List[str]:
     """
     strings = subtree["strings"]
     lengths = subtree["lengths"]
-    if len(lengths) == 0 and len(strings) == 0:
+    if lengths.shape[0] == 0 and strings.shape[0] == 0:
         return []
     strings = strings[0]
     if subtree.get("str", True):
