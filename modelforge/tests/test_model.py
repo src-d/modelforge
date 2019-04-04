@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import asdf
 import numpy
+from numpy.testing import assert_array_equal
 from scipy.sparse import csr_matrix
 
 from modelforge import configuration, storage_backend
@@ -443,6 +444,15 @@ class ModelTests(unittest.TestCase):
 
 class SerializationTests(unittest.TestCase):
     DOCFREQ_PATH = "test.asdf"
+
+    def test_empty_split_and_merge(self):
+        strings = []
+        merged = merge_strings(strings)
+        assert_array_equal(merged["strings"], numpy.array([], dtype="S1"))
+        assert_array_equal(merged["lengths"], numpy.array([], dtype=int))
+        self.assertIsNone(merged["str"])
+        strings_restored = split_strings(merged)
+        self.assertEqual(strings, strings_restored)
 
     def test_merge_strings(self):
         strings = ["a", "bc", "def"]

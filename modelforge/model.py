@@ -478,6 +478,10 @@ def merge_strings(list_of_strings: Union[List[str], Tuple[str]]) -> dict:
     """
     if not isinstance(list_of_strings, (tuple, list)):
         raise TypeError("list_of_strings must be either a tuple or a list")
+    if len(list_of_strings) == 0:
+        return {"strings": numpy.array([], dtype="S1"),
+                "lengths": numpy.array([], dtype=int),
+                "str": None}
     with_str = not isinstance(list_of_strings[0], bytes)
     if with_str:
         if not isinstance(list_of_strings[0], str):
@@ -505,10 +509,13 @@ def split_strings(subtree: dict) -> List[str]:
     :param subtree: The dict with "strings" and "lengths".
     :return: :class:`list` of :class:`str`-s or :class:`bytes`.
     """
-    strings = subtree["strings"][0]
+    strings = subtree["strings"]
+    lengths = subtree["lengths"]
+    if len(lengths) == 0 and len(strings) == 0:
+        return []
+    strings = strings[0]
     if subtree.get("str", True):
         strings = strings.decode("utf-8")
-    lengths = subtree["lengths"]
     result = [None] * lengths.shape[0]
     offset = 0
     for i, l in enumerate(lengths):
