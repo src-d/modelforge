@@ -199,7 +199,7 @@ class GitIndex:
             os.remove(index)
         self._log.info("Writing the new index.json ...")
         with open(index, "w") as _out:
-            json.dump(self.contents, _out)
+            json.dump(self.contents, _out, sort_keys=True, indent=4)
         git.add(self.cached_repo, [index])
         message = self.COMMIT_MESSAGES[cmd].format(**meta)
         if self.signoff:
