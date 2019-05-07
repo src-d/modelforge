@@ -7,11 +7,18 @@ VENDOR = os.getenv("MODELFORGE_VENDOR", None)
 BACKEND = os.getenv("MODELFORGE_BACKEND", None)
 BACKEND_ARGS = os.getenv("MODELFORGE_BACKEND_ARGS", "")
 INDEX_REPO = os.getenv("MODELFORGE_INDEX_REPO", "")
-CACHE_DIR = os.getenv("MODELFORGE_CACHE_DIR",
-                      os.path.join(os.path.expanduser("~"), ".cache", "modelforge"))
+CACHE_DIR = os.getenv("MODELFORGE_CACHE_DIR", os.path.join(os.path.expanduser("~"), ".cache"))
 ALWAYS_SIGNOFF = os.getenv("MODELFORGE_ALWAYS_SIGNOFF", False)
-
 OVERRIDE_FILE = "modelforgecfg.py"
+
+
+def vendor_cache_dir() -> str:
+    """Return the directory where downloaded models and the index are stored."""
+    if VENDOR is None:
+        raise RuntimeError("modelforge is not configured; look at modelforge.configuration. "
+                           "Depending on your objective you may or may not want to create a "
+                           "modelforgecfg.py file which sets VENDOR and the rest.")
+    return os.path.join(CACHE_DIR, VENDOR)
 
 
 def refresh():

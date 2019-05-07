@@ -15,10 +15,11 @@ import numpy
 import pygtrie
 import scipy.sparse
 
-import modelforge.configuration as config
+from modelforge.backends import create_backend
+from modelforge.configuration import vendor_cache_dir
 from modelforge.environment import collect_environment
 from modelforge.meta import check_license, format_datetime, generate_new_meta, get_datetime_now
-from modelforge.storage_backend import StorageBackend
+from modelforge.storage_backend import download_http, StorageBackend
 
 
 class Model:
@@ -63,8 +64,8 @@ class Model:
         assert isinstance(self.NO_COMPRESSION, tuple), "NO_COMPRESSION must be a tuple"
         self._compression_prefixes = pygtrie.PrefixSet(self.NO_COMPRESSION)
 
-    def load(self, source: Union[str, BinaryIO, "Model"]=None, cache_dir: str=None,
-             backend: StorageBackend=None, lazy=False) -> "Model":
+    def load(self, source: Union[str, BinaryIO, "Model"] = None, cache_dir: str = None,
+             backend: StorageBackend = None, lazy=False) -> "Model":
         """
         Build a new Model instance.
 
@@ -90,7 +91,7 @@ class Model:
             if source is None or (isinstance(source, str) and not os.path.isfile(source)):
                 if cache_dir is None:
                     if not generic:
-                        cache_dir = os.path.join(self.cache_dir(), self.NAME)
+                        cache_dir = os.path.join(vendor_cache_dir(), self.NAME)
                     else:
                         cache_dir = tempfile.mkdtemp(prefix="modelforge-")
                 try:
@@ -100,13 +101,18 @@ class Model:
                     is_uuid = False
                 model_id = self.DEFAULT_NAME if not is_uuid else source
                 file_name = model_id + self.DEFAULT_FILE_EXT
-                file_name = os.path.join(os.path.expanduser(cache_dir), file_name)
+                file_name = os.path.join(cache_dir, file_name)
                 if os.path.exists(file_name) and (not source or not os.path.exists(source)):
                     source = file_name
                 elif source is None or is_uuid:
                     if backend is None:
-                        raise ValueError("The backend must be set to load a UUID or the default "
-                                         "model.")
+                        try:
+                            backend = create_backend()
+                        except ValueError as e:
+                            raise ValueError(
+                                "A backend must be set to load a UUID or the default model. The "
+                                "attempt to create a backend with default parameters failed."
+                            ) from e
                     index = backend.index.contents
                     config = index["models"]
                     if not generic:
@@ -124,9 +130,7 @@ class Model:
                             raise FileNotFoundError("Model %s not found." % source)
                     source = source["url"]
                 if re.match(r"\w+://", source):
-                    if backend is None:
-                        raise ValueError("The backend must be set to load a URL.")
-                    backend.fetch_model(source, file_name)
+                    download_http(source, file_name, self._log)
                     self._source = source
                     source = file_name
             if isinstance(source, str):
@@ -330,15 +334,6 @@ class Model:
             setattr(self, key, state[key])
         self._compression_prefixes = pygtrie.PrefixSet(self.NO_COMPRESSION)
         self._load_tree(state["tree"])
-
-    @staticmethod
-    def cache_dir() -> str:
-        """Return the default cache directory where downloaded models are stored."""
-        if config.VENDOR is None:
-            raise RuntimeError("modelforge is not configured; look at modelforge.configuration. "
-                               "Depending on your objective you may or may not want to create a "
-                               "modelforgecfg.py file which sets VENDOR and the rest.")
-        return os.path.join("~", "." + config.VENDOR)
 
     def get_dep(self, name: str) -> str:
         """

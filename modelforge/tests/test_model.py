@@ -441,6 +441,10 @@ class ModelTests(unittest.TestCase):
             Model8().save(savepath, "series")
             self.assertEqual(Model8().load(savepath).tree["abc"], 777)
 
+    def test_load_no_args(self):
+        shutil.rmtree(configuration.vendor_cache_dir(), ignore_errors=True)
+        self.assertRaises(ValueError, FakeDocfreqModel().load)
+
 
 class SerializationTests(unittest.TestCase):
     DOCFREQ_PATH = "test.asdf"
