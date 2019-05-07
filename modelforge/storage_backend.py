@@ -109,7 +109,7 @@ DEFAULT_DOWNLOAD_CHUNK_SIZE = 65536
 
 
 def download_http(source: str, file: Union[str, BinaryIO], log: logging.Logger,
-                  chunk_size: int=DEFAULT_DOWNLOAD_CHUNK_SIZE) -> None:
+                  chunk_size: int = DEFAULT_DOWNLOAD_CHUNK_SIZE) -> None:
     """
     Download a file from an HTTP source.
 

@@ -47,21 +47,22 @@ class GitIndex:
         if remote is None:
             remote = config.INDEX_REPO
         if cache is None:
-            cache = config.CACHE_DIR
+            cache = config.vendor_cache_dir()
         if signoff is None:
             signoff = config.ALWAYS_SIGNOFF
         self.signoff = signoff
         parsed_url = urlparse(remote)
+        errmsg = "Invalid index URL: \"%s\"" % remote
         if not parsed_url.scheme or \
                 parsed_url.scheme not in ("git", "git+ssh", "ssh", "http", "https"):
-            self._log.critical("Parsed url does not contain a valid protocol.")
-            raise ValueError
+            self._log.critical("Parsed URL does not contain a valid protocol.")
+            raise ValueError(errmsg)
         if not parsed_url.netloc:
-            self._log.critical("Parsed url does not contain a valid domain.")
-            raise ValueError
+            self._log.critical("Parsed URL does not contain a valid domain.")
+            raise ValueError(errmsg)
         if not parsed_url.path:
-            self._log.critical("Parsed url does not contain a valid repository path.")
-            raise ValueError
+            self._log.critical("Parsed URL does not contain a valid repository path.")
+            raise ValueError(errmsg)
         self.repo = parsed_url.path
         if self.repo.startswith("/"):
             self.repo = self.repo[1:]
