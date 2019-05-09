@@ -7,7 +7,7 @@ google-cloud-storage==1.2.0
 # requests should be before dulwich to avoid urllib3 version conflict
 requests==2.21.0
 dulwich==0.19.11
-jinja2 ==2.10
+jinja2==2.10.1
 humanize==0.5.1
 python-dateutil==2.7.3
 pygtrie==2.3
