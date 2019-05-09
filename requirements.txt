@@ -4,11 +4,12 @@ numpy==1.14.0
 scipy==1.0.0
 clint==0.5.1
 google-cloud-storage==1.2.0
+# Requests should be first to avoid dependency problems on urllib3
+requests==2.21.0
 dulwich==0.19.11
 jinja2 ==2.10
 humanize==0.5.1
 python-dateutil==2.7.3
-requests==2.21.0
 pygtrie==2.3
 xxhash==1.2.0
 spdx==2.5.0
