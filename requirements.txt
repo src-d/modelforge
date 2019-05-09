@@ -4,7 +4,8 @@ numpy==1.14.0
 scipy==1.0.0
 clint==0.5.1
 google-cloud-storage==1.2.0
-# requests should be before dulwich to avoid urllib3 version conflict
+# dulwich does not specify an upper version constraint for urllib3 and we may end up with a conflict otherwise
+urllib3<1.25
 requests==2.21.0
 dulwich==0.19.11
 jinja2==2.10.1
