@@ -31,7 +31,9 @@ setup(
                       "scipy>=1.0,<2.0",
                       "clint>=0.5.0,<0.6",
                       "google-cloud-storage>=1.2,<=1.2.0",
-                      # requests should be before dulwich to avoid urllib3 version conflict
+                      # dulwich does not specify an upper version constraint for urllib3
+                      # so we may end up with a conflict otherwise
+                      "urllib3<1.25",
                       "requests>=2.0,<3.0",
                       "dulwich>=0.19,<1.0",
                       "jinja2>=2.10.1,<3.0",
