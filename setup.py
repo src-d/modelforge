@@ -31,11 +31,12 @@ setup(
                       "scipy>=1.0,<2.0",
                       "clint>=0.5.0,<0.6",
                       "google-cloud-storage>=1.2,<=1.2.0",
+                      # requests should be before dulwich to avoid urllib3 version conflict
+                      "requests >=2.0,<3.0",
                       "dulwich>=0.19,<1.0",
                       "jinja2 >=2.0,<3.0",
                       "humanize>=0.5.0,<0.6",
                       "python-dateutil>=2.0,<3.0",
-                      "requests >=2.0,<3.0",
                       "typing;python_version<'3.5'",
                       "pygtrie>=1.0,<3.0",
                       "xxhash>=1.0,<2.0",
