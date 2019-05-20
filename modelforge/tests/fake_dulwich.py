@@ -20,7 +20,7 @@ def clone(remote_url, cached_repo, checkout=True):
         raise ValueError
     os.makedirs(cached_repo, exist_ok=True)
     with open(os.path.join(cached_repo, "index.json"), "w") as _out:
-        json.dump(FakeRepo.index, _out)
+        json.dump(FakeRepo.index, _out, sort_keys=True, indent=4)
     for model in FakeRepo.index["models"]:
         model_dir = os.path.join(cached_repo, model)
         os.makedirs(model_dir, exist_ok=True)
