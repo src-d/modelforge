@@ -1,16 +1,17 @@
 import io
 import logging
 import os
-from typing import BinaryIO, Union
 
 from clint.textui import progress
 from google.cloud.exceptions import NotFound
 
+from modelforge.backends import register_backend
 from modelforge.index import GitIndex
-from modelforge.storage_backend import BackendRequiredError, DEFAULT_DOWNLOAD_CHUNK_SIZE, \
-    download_http, ExistingBackendError, ModelAlreadyExistsError, StorageBackend
+from modelforge.storage_backend import BackendRequiredError, \
+    ExistingBackendError, ModelAlreadyExistsError, StorageBackend
 
 
+@register_backend
 class GCSBackend(StorageBackend):
     """Google Cloud Storage backend. Each model file is a blob."""
 
@@ -149,12 +150,7 @@ class GCSBackend(StorageBackend):
         blob.make_public()
         return blob.public_url
 
-    def fetch_model(self, source: str, file: Union[str, BinaryIO],
-                    chunk_size: int=DEFAULT_DOWNLOAD_CHUNK_SIZE) -> None:
-        """Download the model from GCS."""
-        download_http(source, file, self._log, chunk_size)
-
-    def delete_model(self, meta: dict):
+    def delete_model(self, meta: dict) -> None:
         """Delete the model from GCS."""
         bucket = self.connect()
         if bucket is None:
