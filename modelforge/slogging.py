@@ -152,7 +152,7 @@ class StructuredHandler(logging.Handler):
             obj["context"] = self.local.context
         except AttributeError:
             pass
-        json.dump(obj, sys.stdout, sort_keys=True, indent=4)
+        json.dump(obj, sys.stdout, sort_keys=True)
         sys.stdout.write("\n")
         sys.stdout.flush()
 
