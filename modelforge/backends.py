@@ -1,14 +1,15 @@
 from functools import wraps
 import logging
-import os
-from typing import Optional, Type, Union
+from typing import BinaryIO, Optional, Type, Union
 
 import modelforge.configuration as config
-from modelforge.gcs_backend import GCSBackend
+from modelforge.http_ import download as download_http
 from modelforge.index import GitIndex
 from modelforge.storage_backend import StorageBackend
 
-__registry__ = {b.NAME: b for b in (GCSBackend,)}
+
+__registry__ = {}
+__downloaders__ = {"http": download_http, "https": download_http}
 
 
 def register_backend(cls: Type[StorageBackend]):
@@ -16,6 +17,14 @@ def register_backend(cls: Type[StorageBackend]):
     if not issubclass(cls, StorageBackend):
         raise TypeError("cls must be a subclass of StorageBackend")
     __registry__[cls.NAME] = cls
+    # DOWNLOADERS is expected to be a tuple of tuples, not a dict
+    # that's because we want it to be immutable
+    # we want immutability because extending class-levels dicts in inheritors is messy
+    for key, downloader in getattr(cls, "DOWNLOADERS", tuple()):
+        if key in __downloaders__:
+            raise TypeError("%s.DOWNLOADERS contain %s which is already set to %s" % (
+                cls.__name__, key, __downloaders__[key]))
+        __downloaders__[key] = downloader
     return cls
 
 
@@ -86,3 +95,17 @@ def supply_backend(optional: Union[callable, bool]=False, index_exists: bool=Tru
     if callable(optional):
         return supply_backend_inner(optional)
     return supply_backend_inner
+
+
+def download_file(source: str, output: Union[str, BinaryIO], log: logging.Logger,
+                  chunk_size: int = -1) -> None:
+    """
+    Download a file by its URL.
+
+    :param source: URL to fetch.
+    :param output: Written file name or file object.
+    :param log: Logger to use.
+    :param chunk_size: Buffer size, if the underlying downloader supports setting it.
+    :return: None
+    """
+    __downloaders__[source[:source.find("://")]](source, output, log, chunk_size)

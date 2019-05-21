@@ -5,8 +5,9 @@ import sys
 from typing import Optional
 
 from modelforge.backends import supply_backend
+from modelforge.http_ import download as download_http
 from modelforge.models import GenericModel
-from modelforge.storage_backend import download_http, StorageBackend
+from modelforge.storage_backend import StorageBackend
 
 
 @supply_backend(optional=True)

@@ -13,7 +13,7 @@ import numpy
 from numpy.testing import assert_array_equal
 from scipy.sparse import csr_matrix
 
-from modelforge import configuration, storage_backend
+from modelforge import configuration, http_
 from modelforge.backends import create_backend
 import modelforge.index as ind
 from modelforge.meta import generate_new_meta
@@ -227,7 +227,7 @@ class ModelTests(unittest.TestCase):
             with open(get_path(self.MODEL_PATH), "rb") as fin:
                 return fin.read()
 
-        storage_backend.requests = FakeRequests(route)
+        http_.requests = FakeRequests(route)
         cleaned = False
 
         def fake_rmtree(path):
@@ -245,7 +245,7 @@ class ModelTests(unittest.TestCase):
             with open(get_path(self.MODEL_PATH), "rb") as fin:
                 return fin.read()
 
-        storage_backend.requests = FakeRequests(route)
+        http_.requests = FakeRequests(route)
         model = GenericModel(source="https://xxx", backend=self.backend)
         self.assertEqual(model.source, "https://xxx")
         self._validate_meta(model)
@@ -259,7 +259,7 @@ class ModelTests(unittest.TestCase):
             with open(get_path(self.MODEL_PATH), "rb") as fin:
                 return fin.read()
 
-        storage_backend.requests = FakeRequests(route)
+        http_.requests = FakeRequests(route)
         model = FakeModel(backend=self.backend)
         self.assertEqual(model.source, "https://xxx")
         self._validate_meta(model)
@@ -269,7 +269,7 @@ class ModelTests(unittest.TestCase):
             self.assertEqual("https://bad_code", url)
             return 404
 
-        storage_backend.requests = FakeRequests(route)
+        http_.requests = FakeRequests(route)
         with self.assertRaises(ValueError):
             GenericModel(source="https://bad_code", backend=self.backend)
 

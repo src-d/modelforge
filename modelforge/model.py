@@ -15,11 +15,11 @@ import numpy
 import pygtrie
 import scipy.sparse
 
-from modelforge.backends import create_backend
+from modelforge.backends import create_backend, download_file
 from modelforge.configuration import vendor_cache_dir
 from modelforge.environment import collect_environment
 from modelforge.meta import check_license, format_datetime, generate_new_meta, get_datetime_now
-from modelforge.storage_backend import download_http, StorageBackend
+from modelforge.storage_backend import StorageBackend
 
 
 class Model:
@@ -130,7 +130,7 @@ class Model:
                             raise FileNotFoundError("Model %s not found." % source)
                     source = source["url"]
                 if re.match(r"\w+://", source):
-                    download_http(source, file_name, self._log)
+                    download_file(source, file_name, self._log)
                     self._source = source
                     source = file_name
             if isinstance(source, str):
