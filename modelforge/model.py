@@ -538,9 +538,9 @@ def disassemble_sparse_matrix(matrix: scipy.sparse.spmatrix) -> dict:
     }
     if isinstance(matrix, (scipy.sparse.csr_matrix, scipy.sparse.csc_matrix)):
         lengths = numpy.concatenate(([0], numpy.diff(matrix.indptr)))
-        result["data"] = matrix.data, squeeze_bits(matrix.indices), squeeze_bits(lengths)
+        result["data"] = [matrix.data, squeeze_bits(matrix.indices), squeeze_bits(lengths)]
     elif isinstance(matrix, scipy.sparse.coo_matrix):
-        result["data"] = matrix.data, (squeeze_bits(matrix.row), squeeze_bits(matrix.col))
+        result["data"] = [matrix.data, (squeeze_bits(matrix.row), squeeze_bits(matrix.col))]
     return result
 
 
@@ -567,6 +567,8 @@ def assemble_sparse_matrix(subtree: dict) -> scipy.sparse.spmatrix:
 def squeeze_bits(arr: numpy.ndarray) -> numpy.ndarray:
     """Return a copy of an integer numpy array with the minimum bitness."""
     assert arr.dtype.kind in ("i", "u")
+    if arr.size == 0:
+        return arr
     if arr.dtype.kind == "i":
         assert arr.min() >= 0
     mlbl = int(arr.max()).bit_length()
