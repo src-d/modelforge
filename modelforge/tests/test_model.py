@@ -527,7 +527,7 @@ class SerializationTests(unittest.TestCase):
         self.assertIn("data", dis)
         self.assertEqual(dis["shape"], arr.shape)
         self.assertEqual(dis["format"], "csr")
-        self.assertIsInstance(dis["data"], (tuple, list))
+        self.assertIsInstance(dis["data"], list)
         self.assertEqual(len(dis["data"]), 3)
         self.assertTrue((dis["data"][0] == mat.data).all())
         self.assertTrue((dis["data"][1] == mat.indices).all())
@@ -564,6 +564,33 @@ class SerializationTests(unittest.TestCase):
         self.assertTrue((mat.indptr == [0, 2, 4, 7]).all())
         self.assertEqual(mat.shape, (3, 10))
         self.assertEqual(mat.dtype, numpy.int)
+
+    def test_disassemble_sparse_matrix_empty(self):
+        arr = numpy.zeros((10, 10), dtype=numpy.float32)
+        mat = csr_matrix(arr)
+        dis = disassemble_sparse_matrix(mat)
+        self.assertIsInstance(dis, dict)
+        self.assertIn("shape", dis)
+        self.assertIn("format", dis)
+        self.assertIn("data", dis)
+        self.assertEqual(dis["shape"], arr.shape)
+        self.assertEqual(dis["format"], "csr")
+        self.assertIsInstance(dis["data"], list)
+        self.assertEqual(len(dis["data"]), 3)
+        self.assertEqual(dis["data"][0].size, 0)
+        self.assertEqual(dis["data"][1].size, 0)
+        self.assertTrue((dis["data"][2] == 0).all())
+
+    def test_assemble_sparse_matrix_empty(self):
+        tree = {
+            "shape": (10, 10),
+            "format": "csr",
+            "data": [numpy.array([], dtype=numpy.float32),
+                     numpy.array([], dtype=numpy.int32),
+                     numpy.zeros(11, dtype=numpy.uint8)]
+        }
+        mat = assemble_sparse_matrix(tree)
+        self.assertEqual(mat.nonzero()[0].size, 0)
 
     def test_pickle(self):
         docfreq = GenericModel(source=get_path(self.DOCFREQ_PATH))
