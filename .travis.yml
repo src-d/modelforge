@@ -1,6 +1,5 @@
 language: python
-sudo: true
-dist: xenial
+dist: bionic
 services:
   - docker
 cache:
@@ -15,7 +14,7 @@ _before_install: &_before_install
     CLOUDSDK_CORE_DISABLE_PROMPTS=1; curl https://sdk.cloud.google.com | bash; fi
   - source /home/travis/google-cloud-sdk/path.bash.inc
   - gcloud version
-  - pip2 install google-compute-engine
+  - pip2 install --user google-compute-engine
   - if [ -f gcs.json ]; then gcloud auth activate-service-account --key-file=gcs.json; fi
 _install: &_install
   - pip install --upgrade pip
@@ -37,17 +36,6 @@ matrix:
       install:
         - pip install -r requirements-lint.txt
     - stage: test
-      python: 3.4
-      dist: trusty
-      env: *_coverage
-      before_install: *_before_install
-      install: *_install
-    - stage: test
-      python: 3.5
-      env: *_coverage
-      before_install: *_before_install
-      install: *_install
-    - stage: test
       python: 3.6
       env: *_coverage
       before_install: *_before_install
@@ -60,7 +48,7 @@ matrix:
       after_success:
         - codecov
     - stage: deploy
-      python: 3.5
+      python: 3.7
       install:
         - pip install --upgrade pip
         - pip install twine

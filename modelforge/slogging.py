@@ -1,6 +1,7 @@
 import argparse
 import codecs
 import datetime
+import functools
 import io
 import json
 import logging
@@ -9,7 +10,7 @@ import re
 import sys
 import threading
 import traceback
-from typing import Dict, Sequence, Tuple, Union
+from typing import Callable, Dict, Sequence, Tuple, Union
 
 import numpy
 import xxhash
@@ -53,6 +54,27 @@ def with_logger(cls):
     """Add a logger as static attribute to a class."""
     cls._log = logging.getLogger(cls.__name__)
     return cls
+
+
+trailing_dot_exceptions = set()
+
+
+def check_trailing_dot(func: Callable) -> Callable:
+    """
+    Decorate a function to check if the log message ends with a dot.
+
+    AssertionError is raised if so.
+    """
+    @functools.wraps(func)
+    def decorated_with_check_trailing_dot(record: logging.LogRecord):
+        if record.name not in trailing_dot_exceptions:
+            msg = record.msg
+            if isinstance(msg, str) and msg.endswith(".") and not msg.endswith(".."):
+                raise AssertionError(
+                    "Log message is not allowed to have a trailing dot: %s: \"%s\"" %
+                    (record.name, msg))
+        return func(record)
+    return decorated_with_check_trailing_dot
 
 
 class NumpyLogRecord(logging.LogRecord):
@@ -136,6 +158,7 @@ class StructuredHandler(logging.Handler):
         super().__init__(level)
         self.local = threading.local()
 
+    @check_trailing_dot
     def emit(self, record: logging.LogRecord):
         """Print the log record formatted as JSON to stdout."""
         created = datetime.datetime.fromtimestamp(record.created, timezone)
@@ -202,8 +225,9 @@ def setup(level: Union[str, int], structured: bool, config_path: str = None):
     root.setLevel(level)
 
     if not structured:
+        handler = root.handlers[0]
+        handler.emit = check_trailing_dot(handler.emit)
         if not sys.stdin.closed and sys.stdout.isatty():
-            handler = root.handlers[0]
             handler.setFormatter(AwesomeFormatter())
     else:
         root.handlers[0] = StructuredHandler(level)
