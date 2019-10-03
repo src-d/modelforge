@@ -2,6 +2,7 @@ from copy import deepcopy
 import inspect
 import logging
 import os
+from pathlib import Path
 from pprint import pformat
 import re
 import shutil
@@ -410,7 +411,7 @@ class Model:
         final_tree = {}
         final_tree.update(tree)
         final_tree["meta"] = meta
-        isfileobj = not isinstance(output, str)
+        isfileobj = not(isinstance(output, (str, Path)))
         if not isfileobj:
             self._source = output
             path = output
