@@ -56,17 +56,23 @@ def with_logger(cls):
     return cls
 
 
+trailing_dot_exceptions = set()
+
+
 def check_trailing_dot(func: Callable) -> Callable:
     """
-    Decorate a function to check if log message ends with trailing dot.
+    Decorate a function to check if the log message ends with a dot.
 
     AssertionError is raised if so.
     """
     @functools.wraps(func)
     def decorated_with_check_trailing_dot(record: logging.LogRecord):
-        msg = str(record.msg)
-        if len(msg) > 1 and msg[-1] == "." and msg[-2] != ".":
-            raise AssertionError("Trailing dot are not allowed in the log message")
+        if record.name not in trailing_dot_exceptions:
+            msg = record.msg
+            if isinstance(msg, str) and msg.endswith(".") and not msg.endswith(".."):
+                raise AssertionError(
+                    "Log message is not allowed to have a trailing dot: %s: \"%s\"" %
+                    (record.name, msg))
         return func(record)
     return decorated_with_check_trailing_dot
 

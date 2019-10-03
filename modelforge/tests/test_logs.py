@@ -90,6 +90,12 @@ class LogTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             logger.info("success.")
 
+    def test_trailing_dot_check_exceptions(self):
+        slogging.setup("INFO", False)
+        logger = logging.getLogger("test182")
+        slogging.trailing_dot_exceptions.add("test182")
+        logger.info("success.")
+
 
 def run_slogging_main():
     parser = argparse.ArgumentParser()
