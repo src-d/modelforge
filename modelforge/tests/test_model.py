@@ -420,7 +420,7 @@ class ModelTests(unittest.TestCase):
             self.assertIsInstance(m.created_at, datetime.datetime)
             self.assertEqual(m.source, f.name)
             self.assertGreater(m.size, 1000)
-            self.assertLess(m.size, 2000)
+            self.assertLess(m.size, 2500)
             m = Model8().load(f.name)
             self.assertEqual(m.tree["abc"], 777)
             self.assertEqual(m.source, f.name)

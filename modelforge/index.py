@@ -55,13 +55,13 @@ class GitIndex:
         errmsg = "Invalid index URL: \"%s\"" % remote
         if not parsed_url.scheme or \
                 parsed_url.scheme not in ("git", "git+ssh", "ssh", "http", "https"):
-            self._log.critical("Parsed URL does not contain a valid protocol.")
+            self._log.critical("Parsed URL does not contain a valid protocol")
             raise ValueError(errmsg)
         if not parsed_url.netloc:
-            self._log.critical("Parsed URL does not contain a valid domain.")
+            self._log.critical("Parsed URL does not contain a valid domain")
             raise ValueError(errmsg)
         if not parsed_url.path:
-            self._log.critical("Parsed URL does not contain a valid repository path.")
+            self._log.critical("Parsed URL does not contain a valid repository path")
             raise ValueError(errmsg)
         self.repo = parsed_url.path
         if self.repo.startswith("/"):
@@ -74,7 +74,7 @@ class GitIndex:
             self.remote_url = self.REMOTE_URL % (parsed_url.scheme, auth, parsed_url.netloc,
                                                  self.repo)
         elif (username is None) != (password is None):
-            msg = "Both username and password must be supplied to access git with credentials."
+            msg = "Both username and password must be supplied to access \"%s\"" % remote
             self._log.critical(msg)
             raise ValueError(msg)
         else:
@@ -89,12 +89,12 @@ class GitIndex:
             self._log.critical("Check SSH is configured, or connection is stable: %s" % e)
             raise ValueError from e
         except GitProtocolError as e:
-            self._log.critical("%s: %s\nCheck your Git credentials." % (type(e), e))
+            self._log.critical("%s: %s\nCheck your Git credentials" % (type(e), e))
             raise ValueError from e
         except (FileNotFoundError, ValueError) as e:
             if exists:
                 self._log.critical(
-                    "%s does not exist or is unreadable, please run `init` command.",
+                    "%s does not exist or is unreadable, please run `init` command",
                     self.INDEX_FILE)
                 raise ValueError from e
         self.models = self.contents.get("models", {})
