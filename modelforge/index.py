@@ -119,11 +119,11 @@ class GitIndex:
         model_type = None
         for key, val in self.models.items():
             if model_uuid in val:
-                self._log.info("Found %s among %s models.", model_uuid, key)
+                self._log.info("Found %s among %s models", model_uuid, key)
                 model_type = key
                 break
         if model_type is None:
-            self._log.error("Model not found, aborted.")
+            self._log.error("Model not found, aborted")
             raise ValueError
         model_directory = os.path.join(self.cached_repo, model_type)
         model_node = self.models[model_type]
@@ -214,13 +214,13 @@ class GitIndex:
                         message += self.DCO_MESSAGE.format(name=name, email=email)
                     except KeyError:
                         self._log.warning(
-                            "Did not find name or email in %s, committing without DCO.",
+                            "Did not find name or email in %s, committing without DCO",
                             global_conf_path)
             else:
                 self._log.warning("Global git configuration file %s does not exist, "
-                                  "committing without DCO.", global_conf_path)
+                                  "committing without DCO", global_conf_path)
         else:
-            self._log.info("Committing the index without DCO.")
+            self._log.info("Committing the index without DCO")
         git.commit(self.cached_repo, message=message)
         self._log.info("Pushing the updated index ...")
         # TODO: change when https://github.com/dulwich/dulwich/issues/631 gets addressed
@@ -237,7 +237,7 @@ class GitIndex:
             self._log.error("Template file name must end with %s" % jinja2_ext)
             raise ValueError
         if not template[:-len(jinja2_ext)].endswith(".md"):
-            self._log.error("Template file should be a Markdown file.")
+            self._log.error("Template file should be a Markdown file")
             raise ValueError
         if not os.path.isabs(template):
             template = os.path.join(os.path.dirname(__file__), template)

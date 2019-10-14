@@ -108,9 +108,9 @@ class GCSBackend(StorageBackend):
         bucket = client.lookup_bucket(self.bucket_name)
         if bucket is not None:
             if not force:
-                self._log.error("Bucket already exists, aborting.")
+                self._log.error("Bucket already exists, aborting")
                 raise ExistingBackendError
-            self._log.info("Bucket already exists, deleting all content.")
+            self._log.info("Bucket already exists, deleting all content")
             for blob in bucket.list_blobs():
                 self._log.info("Deleting %s ..." % blob.name)
                 bucket.delete_blob(blob.name)
@@ -124,7 +124,7 @@ class GCSBackend(StorageBackend):
             raise BackendRequiredError
         blob = bucket.blob("models/%s/%s.asdf" % (meta["model"], meta["uuid"]))
         if blob.exists() and not force:
-            self._log.error("Model %s already exists, aborted.", meta["uuid"])
+            self._log.error("Model %s already exists, aborted", meta["uuid"])
             raise ModelAlreadyExistsError
         self._log.info("Uploading %s from %s...", meta["model"], os.path.abspath(path))
 
@@ -161,4 +161,4 @@ class GCSBackend(StorageBackend):
             self._log.info("Deleting model ...")
             bucket.delete_blob(blob_name)
         except NotFound:
-            self._log.warning("Model %s already deleted.", meta["uuid"])
+            self._log.warning("Model %s already deleted", meta["uuid"])

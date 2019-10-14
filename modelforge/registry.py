@@ -81,7 +81,7 @@ def publish_model(args: argparse.Namespace, backend: StorageBackend, log: loggin
         backend.index.upload("add", {"model": model_type, "uuid": model_uuid})
     except ValueError:  # TODO: replace with PorcelainError, see related TODO in index.py:181
         return 1
-    log.info("Successfully published.")
+    log.info("Successfully published")
 
 
 def list_models(args: argparse.Namespace):
@@ -131,4 +131,4 @@ def delete_model(args: argparse.Namespace, backend: StorageBackend, log: logging
         backend.index.upload("delete", meta)
     except ValueError:  # TODO: replace with PorcelainError
         return 1
-    log.info("Successfully deleted.")
+    log.info("Successfully deleted")
