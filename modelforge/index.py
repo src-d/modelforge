@@ -48,7 +48,7 @@ class GitIndex:
             remote = config.INDEX_REPO
         if cache is None:
             cache = config.vendor_cache_dir()
-        if signoff is None:
+        if not signoff:
             signoff = config.ALWAYS_SIGNOFF
         self.signoff = signoff
         parsed_url = urlparse(remote)
