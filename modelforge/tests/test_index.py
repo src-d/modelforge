@@ -276,35 +276,26 @@ class GitIndexTests(unittest.TestCase):
         self.assertListEqual(sorted(os.listdir(git_index.cached_repo)), [".gitignore", "docfreq"])
 
     def test_upload_add(self):
-        git_index = index.GitIndex(remote=self.default_url, cache=self.cached_path,
-                                   signoff=False)
+        git_index = index.GitIndex(remote=self.default_url, cache=self.cached_path)
         git_index.upload("add", {"model": "a", "uuid": "b"})
         self.assertTrue(fake_git.FakeRepo.added)
-        self.assertEqual(fake_git.FakeRepo.message, "Add a/b")
+        self.assertIn("Add a/b\n\nSigned-off-by:", fake_git.FakeRepo.message)
         self.assertTrue(fake_git.FakeRepo.pushed)
 
     def test_upload_delete(self):
-        git_index = index.GitIndex(remote=self.default_url, cache=self.cached_path,
-                                   signoff=False)
+        git_index = index.GitIndex(remote=self.default_url, cache=self.cached_path)
         git_index.upload("delete", {"model": "a", "uuid": "b"})
         self.assertTrue(fake_git.FakeRepo.added)
-        self.assertEqual(fake_git.FakeRepo.message, "Delete a/b")
+        self.assertIn("Delete a/b\n\nSigned-off-by:", fake_git.FakeRepo.message)
         self.assertTrue(fake_git.FakeRepo.pushed)
 
     def test_upload_init(self):
-        git_index = index.GitIndex(remote=self.default_url, cache=self.cached_path,
-                                   signoff=False)
+        git_index = index.GitIndex(remote=self.default_url, cache=self.cached_path)
         git_index.upload("reset", {})
         self.assertTrue(fake_git.FakeRepo.added)
-        self.assertEqual(
-            fake_git.FakeRepo.message, "Initialize a new Modelforge index")
-        self.assertTrue(fake_git.FakeRepo.pushed)
-
-    def test_upload_dco(self):
-        git_index = index.GitIndex(remote=self.default_url, cache=self.cached_path, signoff=True)
-        git_index.upload("reset", {})
-        self.assertIn("Initialize a new Modelforge index\n\nSigned-off-by: ",
+        self.assertIn("Initialize a new Modelforge index\n\nSigned-off-by:",
                       fake_git.FakeRepo.message)
+        self.assertTrue(fake_git.FakeRepo.pushed)
 
     def test_upload_bug(self):
         git_index = index.GitIndex(remote=self.default_url, cache=self.cached_path)
