@@ -7,7 +7,8 @@ import spdx
 
 from modelforge.environment import collect_environment_without_packages
 
-LICENSES = {l["id"] for l in spdx.licenses()}.union({"Proprietary"})
+LICENSES = {l["id"]: l for l in spdx.licenses()}
+LICENSES["Proprietary"] = {"sources": [""]}
 
 
 def check_license(license: str):
@@ -76,7 +77,7 @@ def extract_model_meta(base_meta: dict, extra_meta: dict, model_url: str) -> dic
     `index.json`.
 
     :param base_meta: tree["meta"] :class:`dict` containing data from the backend.
-    :param extra_meta: dict containing data from the user, similar to `template_meta.json`.
+    :param extra_meta: dict containing data from the user, similar to `meta.json`.
     :param model_url: public URL of the model.
     :return: converted dict.
     """

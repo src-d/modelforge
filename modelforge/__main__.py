@@ -44,11 +44,11 @@ def main():
     def add_templates_args(p):
         p.add_argument(
             "--template-model",
-            default=os.path.join(os.path.dirname(__file__), "templates/template_model.md.jinja2"),
+            default=os.path.join(os.path.dirname(__file__), "templates/model.md.jinja2"),
             help="Path to the jinja2 template used in the index for the model.")
         p.add_argument(
             "--template-readme",
-            default=os.path.join(os.path.dirname(__file__), "templates/template_readme.md.jinja2"),
+            default=os.path.join(os.path.dirname(__file__), "templates/readme.md.jinja2"),
             help="Path to the jinja2 template used in the index for the readme.")
 
     # ------------------------------------------------------------------------
@@ -86,7 +86,7 @@ def main():
     publish_parser.add_argument(
         "model", help="The path to the model to publish.")
     publish_parser.add_argument(
-        "--meta", default=os.path.join(os.path.dirname(__file__), "templates/template_meta.json"),
+        "--meta", default=os.path.join(os.path.dirname(__file__), "templates/meta.json"),
         help="Path to the JSON file which contains the additional metadata of the model.")
     publish_parser.add_argument("-d", "--update-default", action="store_true",
                                 help="Set this model as the default one.")

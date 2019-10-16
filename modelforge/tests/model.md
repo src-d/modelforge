@@ -20,5 +20,5 @@ model_code "92609e70-f79c-46b5-8419-55726e873cfc"
 | File     | http://xxx |
 | Size     | 4 Bytes |
 | ext | data |
-| License  | [license](link) |
+| License  | [ODbL-1.0](http://www.opendatacommons.org/licenses/odbl/1.0/) |
 
