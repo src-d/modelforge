@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import shutil
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -107,8 +108,17 @@ class GitIndex:
             self._log.warning("Index not found, caching %s in %s", self.repo, self.cached_repo)
             git.clone(self.remote_url, self.cached_repo, checkout=True)
         else:
-            self._log.debug("Index is cached")
-            if self._are_local_and_remote_heads_different():
+            self._log.debug("Index is cached in %s", self.cached_repo)
+            try:
+                diff = self._are_local_and_remote_heads_different()
+            except Exception as e:
+                self._log.warning(
+                    "There was a problem with reading the cached index so cloning from "
+                    "scratch: %s: %s", type(e).__name__, e)
+                shutil.rmtree(self.cached_repo)
+                self.fetch()
+                return
+            if diff:
                 self._log.info("Cached index is not up to date, pulling %s", self. repo)
                 git.pull(self.cached_repo, self.remote_url)
         with open(os.path.join(self.cached_repo, self.INDEX_FILE), encoding="utf-8") as _in:
