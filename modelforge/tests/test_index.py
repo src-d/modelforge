@@ -12,7 +12,7 @@ class GitIndexTests(unittest.TestCase):
     cached_path = os.path.join(tempdir, "modelforge-test-cache")
     repo_path = os.path.join(cached_path, "src-d", "models")
     default_url = "https://github.com/src-d/models"
-    templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+    templates_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "templates"))
     default_index = {
         "models": {
             "docfreq": {
@@ -208,7 +208,7 @@ class GitIndexTests(unittest.TestCase):
         self.assertEqual(git_index.meta["docfreq"]["default"], "")
 
     def test_add(self):
-        template_path = os.path.join(self.templates_dir, "template_model.md.jinja2")
+        template_path = os.path.join(self.templates_dir, "model.md.jinja2")
         git_index = index.GitIndex(remote=self.default_url, cache=self.cached_path)
         template = git_index.load_template(template_path)
         meta = {
@@ -220,13 +220,16 @@ class GitIndexTests(unittest.TestCase):
                 "size": "4 Bytes",
                 "references": [["ref_name", "ref_url"]],
                 "extra": {"ext": "data"},
-                "license": ["license", "link"],
+                "license": "Proprietary",
                 "dependencies": [],
                 "url": "http://xxx",
                 "created_at": "13:42",
                 "version": [1, 0, 3]
             }
         }
+        git_index.add_model("docfreq", "92609e70-f79c-46b5-8419-55726e873cfc", meta, template)
+        git_index = index.GitIndex(remote=self.default_url, cache=self.cached_path)
+        meta["model"]["license"] = "ODbL-1.0"
         git_index.add_model("docfreq", "92609e70-f79c-46b5-8419-55726e873cfc", meta, template)
         self.assertEqual(git_index.models["docfreq"]["92609e70-f79c-46b5-8419-55726e873cfc"],
                          meta["model"])
@@ -254,7 +257,7 @@ class GitIndexTests(unittest.TestCase):
     def test_readme(self):
         self.maxDiff = None
         git_index = index.GitIndex(remote=self.default_url, cache=self.cached_path)
-        template_path = os.path.join(self.templates_dir, "template_readme.md.jinja2")
+        template_path = os.path.join(self.templates_dir, "readme.md.jinja2")
         template = git_index.load_template(template_path)
         git_index.update_readme(template)
         readme_path = os.path.join(self.cached_path, "src-d/models/README.md")
@@ -311,7 +314,7 @@ class GitIndexTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             git_index.load_template("fake.jinja2")
 
-        template_path = os.path.join(self.templates_dir, "template_readme.md.jinja2")
+        template_path = os.path.join(self.templates_dir, "readme.md.jinja2")
         template = git_index.load_template(template_path)
         self.assertEqual(template.render(meta={}, models={}, links={}),
                          "source{d} MLonCode models\n=========================\n")

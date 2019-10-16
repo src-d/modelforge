@@ -12,6 +12,7 @@ from dulwich.repo import Repo
 from jinja2 import Template
 
 import modelforge.configuration as config
+from modelforge.meta import LICENSES
 
 
 class GitIndex:
@@ -170,7 +171,7 @@ class GitIndex:
                     links[uuid] = os.path.join("/", m_type, "%s.md" % uuid)
         with open(model, "w") as fout:
             fout.write(template_model.render(model_type=model_type, model_uuid=model_uuid,
-                                             meta=model_meta, links=links))
+                                             meta=model_meta, links=links, spdx=LICENSES))
         git.add(self.cached_repo, [model])
         self._log.info("Added %s", model)
 

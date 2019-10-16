@@ -24,7 +24,7 @@ Example:
 {% for key, val in meta.extra.items() | sort %}
 | {{ key }} | {{ val }} |
 {% endfor %}
-| License  | [{{ meta.license[0] }}]({{ meta.license[1] }}) |
+| License  | [{{ meta.license }}]({{ spdx[meta.license]["sources"][0] }}) |
 
 {% if meta.dependencies %}
 ### Dependencies
